@@ -401,3 +401,193 @@ E o serviço A continua sendo monitorado normalmente
 | 7 — Hierarquia em cadeia (avô → pai → filho) | Happy path — propagação multinível |
 | 8 — Pai retoma, filho continua falhando | Alternativo — falhas em sequência mista |
 | 9 — Serviço sem hierarquia não herda nada | Isolamento — sem vínculo |
+
+---
+
+## Feature: Monitoramento de Healthcheck
+
+**In order to** detectar e contabilizar com precisão os períodos de indisponibilidade de cada serviço ao longo do dia
+**As** Sistema de Monitoramento
+**I want** verificar periodicamente o endpoint de healthcheck de cada serviço ativo e registrar o estado retornado, acumulando o tempo de indisponibilidade a partir da primeira verificação do dia
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN20 | Apenas serviços com status **Ativo** são verificados; serviços **Inativos** não recebem verificações até serem reativados |
+| RN21 | A primeira verificação ocorre após o primeiro intervalo configurado (padrão: 1 minuto), nunca imediatamente ao iniciar |
+| RN22 | O serviço é considerado **indisponível** quando o healthcheck retorna: status HTTP fora de 200–204, status `Unhealthy` (0), ou status `Degraded` (1) |
+| RN23 | O serviço é considerado **disponível** apenas quando o healthcheck retorna status HTTP 200–204 **e** status `Healthy` (2) |
+| RN24 | Timeout de resposta é de **1 minuto**; ausência de resposta nesse prazo conta como indisponibilidade |
+| RN25 | Se o sistema de monitoramento ficar fora do ar, o período sem verificação é contabilizado integralmente como indisponibilidade para todos os serviços ativos |
+| RN26 | O acúmulo diário reinicia à meia-noite (00h00); o contador do dia anterior é fechado no momento exato da virada |
+| RN27 | Serviços cadastrados durante o dia só passam a ser monitorados a partir de 00h00 do dia seguinte |
+| RN28 | O intervalo de verificação é configurável por serviço; o padrão é **1 minuto** |
+
+---
+
+### Cenário 1 — Verificação bem-sucedida (Healthy)
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o endpoint de healthcheck está configurado como "https://pagamentos/health"
+Quando o intervalo de 1 minuto decorre após o início do monitoramento
+E o endpoint retorna HTTP 200 com status Healthy (2)
+Então o sistema registra o serviço como disponível naquele instante
+E nenhum tempo de indisponibilidade é acumulado
+E a próxima verificação é agendada para 1 minuto depois
+```
+
+---
+
+### Cenário 2 — Healthcheck retorna Unhealthy
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 11h59
+Quando o intervalo decorre e o endpoint retorna HTTP 200 com status Unhealthy (0)
+Então o sistema registra o serviço como indisponível a partir de 12h00
+E inicia a contagem do tempo de indisponibilidade
+E a próxima verificação é agendada para 1 minuto depois
+```
+
+---
+
+### Cenário 3 — Healthcheck retorna Degraded
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 14h29
+Quando o intervalo decorre e o endpoint retorna HTTP 200 com status Degraded (1)
+Então o sistema registra o serviço como indisponível a partir de 14h30
+E inicia a contagem do tempo de indisponibilidade
+```
+
+---
+
+### Cenário 4 — Healthcheck retorna status HTTP fora de 200–204
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 09h14
+Quando o intervalo decorre e o endpoint retorna HTTP 503
+Então o sistema registra o serviço como indisponível a partir de 09h15
+E inicia a contagem do tempo de indisponibilidade
+```
+
+---
+
+### Cenário 5 — Timeout na verificação
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 10h04
+Quando o intervalo decorre e o endpoint não responde dentro de 1 minuto
+Então o sistema registra o serviço como indisponível a partir de 10h05
+E inicia a contagem do tempo de indisponibilidade
+E a próxima verificação é agendada normalmente
+```
+
+---
+
+### Cenário 6 — Serviço retorna a ficar disponível após período de falha
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo
+E estava indisponível desde 11h00
+Quando o intervalo decorre e o endpoint retorna HTTP 200 com status Healthy (2)
+Então o sistema encerra o período de indisponibilidade
+E registra o intervalo de falha no acúmulo do dia
+E a contagem de indisponibilidade para de crescer
+```
+
+---
+
+### Cenário 7 — Sistema de monitoramento fica fora do ar
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo e disponível às 08h00
+E o sistema de monitoramento fica indisponível entre 08h00 e 08h10 (10 minutos)
+Quando o sistema de monitoramento volta às 08h10
+Então os 10 minutos sem verificação são contabilizados como indisponibilidade para todos os serviços ativos
+E o monitoramento retoma normalmente a partir de 08h10
+```
+
+---
+
+### Cenário 8 — Virada de dia fecha o acúmulo anterior
+
+```gherkin
+Dado que o serviço "API de Pagamentos" está Ativo
+E estava indisponível desde 23h50 do dia 25/06
+Quando o relógio atinge 00h00 do dia 26/06
+Então o período de 23h50 a 00h00 (10 minutos) é fechado e registrado no acúmulo do dia 25/06
+E um novo acúmulo começa para o dia 26/06 a partir de 00h00
+E a indisponibilidade em curso continua sendo contabilizada no novo dia
+```
+
+---
+
+### Cenário 9 — Serviço cadastrado no meio do dia não é monitorado até o dia seguinte
+
+```gherkin
+Dado que um novo serviço "API de Relatórios" é cadastrado às 14h30 do dia 25/06 com status Ativo
+Quando o sistema avalia quais serviços devem ser monitorados
+Então o serviço "API de Relatórios" não é verificado no restante do dia 25/06
+E o monitoramento inicia às 00h01 do dia 26/06 (após o primeiro intervalo a partir da meia-noite)
+```
+
+---
+
+### Cenário 10 — Serviço inativo não é verificado
+
+```gherkin
+Dado que o serviço "API de Relatórios" está com status Inativo
+Quando o intervalo de verificação decorre
+Então o sistema não realiza nenhuma chamada ao endpoint do serviço
+E nenhum tempo de indisponibilidade é acumulado para o serviço
+```
+
+---
+
+### Cenário 11 — Serviço reativado volta a ser monitorado
+
+```gherkin
+Dado que o serviço "API de Relatórios" estava Inativo desde 09h00
+Quando o administrador altera o status do serviço para Ativo às 11h00
+Então o sistema passa a incluir o serviço nas verificações periódicas
+E a primeira verificação ocorre após o primeiro intervalo a partir das 11h00
+E o acúmulo de indisponibilidade começa a ser contabilizado a partir desse momento
+```
+
+---
+
+### Cenário 12 — Intervalo de verificação personalizado
+
+```gherkin
+Dado que o serviço "API de Relatórios" está Ativo com intervalo configurado em 5 minutos
+Quando o monitoramento está em execução
+Então o sistema verifica o healthcheck a cada 5 minutos
+E não realiza verificações nos intervalos intermediários
+```
+
+---
+
+## Cobertura — Feature: Monitoramento de Healthcheck
+
+| Cenário | Tipo |
+|---------|------|
+| 1 — Verificação bem-sucedida | Happy path |
+| 2 — Retorna Unhealthy | Indisponibilidade por status |
+| 3 — Retorna Degraded | Indisponibilidade por status |
+| 4 — Retorna HTTP fora de 200–204 | Indisponibilidade por HTTP |
+| 5 — Timeout na verificação | Indisponibilidade por ausência de resposta |
+| 6 — Serviço retorna a ficar disponível | Encerramento de período de falha |
+| 7 — Sistema de monitoramento fora do ar | Exceção — downtime do próprio sistema |
+| 8 — Virada de dia | Regra de negócio — fechamento do acúmulo |
+| 9 — Serviço cadastrado no meio do dia | Regra de negócio — início de monitoramento |
+| 10 — Serviço inativo não é verificado | Regra de negócio — status Inativo |
+| 11 — Serviço reativado volta a ser monitorado | Alternativo — reativação |
+| 12 — Intervalo personalizado | Regra de negócio — configuração de intervalo |
