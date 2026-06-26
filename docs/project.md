@@ -17,7 +17,7 @@ Monitorar a saúde das aplicações e fornecer relatórios sobre a indisponibili
 
 ## Status das Fases
 - [x] Discovery (em andamento)
-- [ ] Escopo
+- [x] Escopo (rascunho)
 - [ ] Especificação
 - [ ] Refinamento
 - [ ] Plano de Execução
