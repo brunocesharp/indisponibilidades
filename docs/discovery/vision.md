@@ -57,7 +57,10 @@ O projeto está sendo executado agora por exigência regulatória. O Tribunal el
 |------|-----------|---------|
 | **Tecnologia** | Os endpoints de healthcheck dos sistemas monitorados devem seguir o padrão `Microsoft.Extensions.Diagnostics.HealthChecks` (ASP.NET Core) | Compatibilidade com ferramentas como Grafana e outros sistemas que consomem esse padrão |
 | **Prazo** | Entrega alinhada ao lançamento do Portal de Serviços | Define o deadline máximo do projeto |
-| **Integração** | Os sistemas monitorados precisam implementar e expor um endpoint de healthcheck compatível | Dependência de outros times para viabilizar o monitoramento |
+| **Integração — Portal** | Os relatórios são exibidos em página dentro do Portal de Serviços; acesso requer autenticação | Dependência de integração com o Portal de Serviços |
+| **Integração — Autenticação** | O tipo de relatório exibido é determinado pelo tipo de usuário via token de autenticação | O sistema consome o token para distinguir Administrador de Usuário, sem gerenciar autenticação própria |
+| **Integração — Sistemas** | A lista de sistemas monitorados é obtida via endpoint externo; este sistema não cadastra nem gerencia sistemas | Dependência de um serviço externo para o inventário de aplicações |
+| **Configuração** | Frequência de verificação (padrão: 1 min) e horário do relatório diário (padrão: meia-noite) são configuráveis via arquivo de configuração | Operação pode ser ajustada sem redeploy |
 
 ---
 
@@ -79,11 +82,11 @@ O projeto está sendo executado agora por exigência regulatória. O Tribunal el
 
 ## Pontos a Refinar
 
-- [ ] Frequência exata das verificações de healthcheck (ex: a cada 1 minuto, 5 minutos?)
-- [ ] Canal de entrega dos relatórios (e-mail, notificação no portal, ambos?)
-- [ ] Profundidade máxima da hierarquia de serviços (2 níveis, N níveis?)
-- [ ] Critério de "fim do dia" para o relatório do administrador (meia-noite? horário configurável?)
-- [ ] Identificação de quem é o "usuário responsável" por cada sistema cadastrado
+- [x] Frequência exata das verificações de healthcheck — padrão **1 minuto**, configurável via arquivo de configuração da aplicação
+- [x] Canal de entrega dos relatórios — página dentro do **Portal de Serviços**, acessível mediante login; o tipo de relatório exibido é determinado pelo tipo de usuário identificado via **token de autenticação**
+- [x] Profundidade máxima da hierarquia de serviços — **sem limite de níveis**
+- [x] Critério de "fim do dia" para o relatório do administrador — padrão **meia-noite**, configurável via arquivo de configuração
+- [x] Identificação do "usuário responsável" — **não é responsabilidade deste sistema**; a lista de sistemas é obtida via endpoint externo; o sistema não gerencia cadastro de usuários
 
 ---
 
