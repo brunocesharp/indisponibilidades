@@ -69,7 +69,7 @@ O projeto está sendo executado agora por exigência regulatória. O Tribunal el
 - **Monitoramento contínuo diário:** O sistema verifica os endpoints de healthcheck periodicamente e acumula os períodos de indisponibilidade ao longo do dia.
 - **Relatório por limiar:** Se um sistema acumular mais de **2 horas** de indisponibilidade no dia, um relatório é gerado e enviado ao usuário responsável.
 - **Relatório diário do administrador:** Ao final de cada dia, um relatório completo com todas as indisponibilidades é gerado automaticamente para o Administrador.
-- **Hierarquia de serviços:** Quando um serviço pai está indisponível, os serviços filhos na hierarquia **não** são contabilizados como indisponíveis — apenas o serviço mais alto da cadeia é considerado o ponto de falha.
+- **Hierarquia de serviços:** Quando um serviço pai está indisponível, os serviços filhos na hierarquia **também** são contabilizados como indisponíveis — o serviço mais alto da cadeia é considerado o início da falha.
 - **Cadastro de serviços:** Novos sistemas são cadastrados com sigla, nome e endpoint de healthcheck, podendo ser vinculados a uma hierarquia existente.
 
 ---
