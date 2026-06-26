@@ -16,7 +16,7 @@ Monitorar a saúde das aplicações e fornecer relatórios sobre a indisponibili
 - Escopo: `docs/escopo/`
 
 ## Status das Fases
-- [ ] Discovery
+- [x] Discovery (em andamento)
 - [ ] Escopo
 - [ ] Especificação
 - [ ] Refinamento
