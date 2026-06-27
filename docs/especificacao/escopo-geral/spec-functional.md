@@ -210,13 +210,13 @@ E o histórico de indisponibilidades é mantido
 
 ---
 
-## Pontos em Aberto
+## Pontos em Aberto — Gerenciamento de Serviços
 
 > Nenhum ponto em aberto identificado para esta feature.
 
 ---
 
-## Cobertura
+## Cobertura — Gerenciamento de Serviços
 
 | Cenário | Tipo |
 |---------|------|
@@ -233,3 +233,193 @@ E o histórico de indisponibilidades é mantido
 | 11 — Reativar sem restaurar hierarquia | Alternativo — ciclo de vida |
 | 12 — Reativar restaurando hierarquia | Alternativo — ciclo de vida |
 | 13 — Remover serviço | Happy path — ciclo de vida |
+
+---
+
+## Feature: Monitoramento de Healthcheck
+
+**In order to** registrar com precisão os períodos de indisponibilidade dos sistemas
+**As** Sistema de Monitoramento
+**I want** verificar periodicamente os endpoints de healthcheck, detectar indisponibilidades com confirmação em duas etapas via buffer e persistir os períodos de indisponibilidade no banco de dados Oracle 19c
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN13 | O sistema verifica os endpoints de healthcheck de todos os serviços com status **Ativo** na frequência configurada (padrão: 1 minuto) |
+| RN14 | Serviços com status **Inativo** ou **Removido** não são verificados |
+| RN15 | Uma resposta com status code fora do intervalo 200–204 é tratada como indisponibilidade |
+| RN16 | Erros de conexão (timeout, DNS não resolve, host inacessível) são tratados como indisponibilidade |
+| RN17 | A primeira falha detectada cria um registro no buffer em memória para o endpoint; o período de indisponibilidade ainda **não** é persistido no banco |
+| RN18 | A segunda falha consecutiva confirma a indisponibilidade: o sistema persiste o início do período no banco Oracle 19c com o horário da primeira falha registrada no buffer e atualiza o buffer indicando que o registro já está sendo gravado |
+| RN19 | Falhas consecutivas após a segunda mantêm o período de indisponibilidade aberto no banco; nenhuma ação adicional é necessária |
+| RN20 | Quando o endpoint retorna sucesso (200–204), o sistema fecha o período de indisponibilidade no banco gravando o horário de fim, limpa o buffer e retoma o ciclo normal de verificação |
+| RN21 | O buffer é mantido exclusivamente em memória; em caso de restart do sistema, o buffer é zerado e o fluxo reinicia do zero sem recuperação de estado anterior |
+| RN22 | Apenas os períodos de indisponibilidade (início e fim) são persistidos; verificações individuais de sucesso não são armazenadas |
+| RN23 | Falha ao persistir no banco Oracle 19c gera uma exceção que é enviada ao sistema de log do tribunal |
+
+---
+
+### Cenário 14 — Verificação com sucesso em serviço sem histórico de falha
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço não possui registro no buffer
+Quando o sistema verifica o endpoint de healthcheck
+E o endpoint retorna status code entre 200 e 204
+Então nenhuma ação é executada
+E o ciclo de verificação continua normalmente
+```
+
+---
+
+### Cenário 15 — Primeira falha detectada (criação no buffer)
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço não possui registro no buffer
+Quando o sistema verifica o endpoint de healthcheck
+E o endpoint retorna status code fora do intervalo 200–204
+Então um registro é criado no buffer para o endpoint com o horário da falha
+E nenhum período de indisponibilidade é persistido no banco
+```
+
+---
+
+### Cenário 16 — Primeira falha por erro de conexão (criação no buffer)
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço não possui registro no buffer
+Quando o sistema tenta verificar o endpoint de healthcheck
+E ocorre erro de conexão (timeout, DNS não resolve ou host inacessível)
+Então um registro é criado no buffer para o endpoint com o horário da falha
+E nenhum período de indisponibilidade é persistido no banco
+```
+
+---
+
+### Cenário 17 — Segunda falha consecutiva (confirmação e persistência no banco)
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço possui registro no buffer indicando a primeira falha
+Quando o sistema verifica o endpoint de healthcheck novamente
+E o endpoint retorna status code fora do intervalo 200–204
+Então o início do período de indisponibilidade é persistido no banco Oracle 19c com o horário da primeira falha registrada no buffer
+E o buffer é atualizado indicando que o período já está sendo gravado no banco
+```
+
+---
+
+### Cenário 18 — Falhas subsequentes após confirmação
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço possui registro no buffer indicando que o período já está sendo gravado no banco
+Quando o sistema verifica o endpoint de healthcheck
+E o endpoint retorna status code fora do intervalo 200–204
+Então nenhuma ação adicional é executada
+E o período de indisponibilidade permanece aberto no banco
+```
+
+---
+
+### Cenário 19 — Recuperação do serviço após indisponibilidade confirmada
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço possui um período de indisponibilidade aberto no banco
+E o serviço possui registro no buffer indicando que o período está sendo gravado
+Quando o sistema verifica o endpoint de healthcheck
+E o endpoint retorna status code entre 200 e 204
+Então o período de indisponibilidade é fechado no banco com o horário de fim
+E o registro do serviço é removido do buffer
+E o ciclo de verificação retoma normalmente
+```
+
+---
+
+### Cenário 20 — Recuperação após primeira falha (sem persistência no banco)
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço possui registro no buffer apenas com a primeira falha (período ainda não persistido no banco)
+Quando o sistema verifica o endpoint de healthcheck
+E o endpoint retorna status code entre 200 e 204
+Então o registro do serviço é removido do buffer
+E nenhum período de indisponibilidade é persistido no banco
+E o ciclo de verificação retoma normalmente
+```
+
+---
+
+### Cenário 21 — Serviço com status Inativo não é verificado
+
+```gherkin
+Dado que existe um serviço com status Inativo no monitoramento
+Quando o ciclo de verificação de healthcheck é executado
+Então o endpoint do serviço não é verificado
+```
+
+---
+
+### Cenário 22 — Serviço com status Removido não é verificado
+
+```gherkin
+Dado que existe um serviço com status Removido no monitoramento
+Quando o ciclo de verificação de healthcheck é executado
+Então o endpoint do serviço não é verificado
+```
+
+---
+
+### Cenário 23 — Restart do sistema zera o buffer
+
+```gherkin
+Dado que o sistema de monitoramento possui registros no buffer para um ou mais endpoints
+Quando o sistema de monitoramento é reiniciado
+Então o buffer é zerado
+E o fluxo de verificação reinicia do zero para todos os serviços
+E nenhuma tentativa de recuperação do estado anterior do buffer é realizada
+```
+
+---
+
+### Cenário 24 — Falha ao persistir indisponibilidade no banco
+
+```gherkin
+Dado que existe um serviço com status Ativo no monitoramento
+E o serviço possui registro no buffer com a primeira falha
+Quando o sistema verifica o endpoint e detecta a segunda falha consecutiva
+E o banco de dados Oracle 19c está indisponível no momento da persistência
+Então uma exceção é gerada
+E a exceção é enviada ao sistema de log do tribunal
+E o período de indisponibilidade não é persistido no banco
+```
+
+---
+
+### Pontos em Aberto — Monitoramento de Healthcheck
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+### Cobertura — Monitoramento de Healthcheck
+
+| Cenário | Tipo |
+|---------|------|
+| 14 — Verificação com sucesso sem histórico de falha | Happy path |
+| 15 — Primeira falha por resposta inválida | Buffer — primeira etapa |
+| 16 — Primeira falha por erro de conexão | Buffer — primeira etapa (variação) |
+| 17 — Segunda falha consecutiva — persistência no banco | Buffer — confirmação |
+| 18 — Falhas subsequentes após confirmação | Regra de negócio — estado contínuo |
+| 19 — Recuperação após indisponibilidade confirmada | Happy path — recuperação |
+| 20 — Recuperação após primeira falha (sem banco) | Alternativo — recuperação parcial |
+| 21 — Serviço Inativo não verificado | Regra de negócio — ciclo de vida |
+| 22 — Serviço Removido não verificado | Regra de negócio — ciclo de vida |
+| 23 — Restart zera buffer | Exceção — resiliência |
+| 24 — Falha ao persistir no banco | Exceção — dependência externa |
