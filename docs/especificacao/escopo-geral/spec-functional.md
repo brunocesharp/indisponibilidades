@@ -980,3 +980,152 @@ E o QR Code com os códigos de autenticação
 | 52 — Código do usuário inválido | Exceção — código não corresponde |
 | 53 — Usuário não autenticado | Exceção — segurança |
 | 54 — Relatório exibido no formato original | Regra de negócio — formato |
+
+---
+
+## Feature: Relatório Diário do Administrador
+
+**In order to** acompanhar todas as indisponibilidades ocorridas no dia e ter visibilidade completa da saúde dos sistemas
+**As** Sistema de Monitoramento
+**I want** gerar automaticamente ao final de cada dia um relatório consolidado com todas as indisponibilidades registradas, disponível para consulta pelo Administrador no Portal de Serviço Administrativo
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN56 | O relatório diário do Administrador é gerado automaticamente à meia-noite, junto com o Relatório por Limiar |
+| RN57 | O relatório inclui **todos** os sistemas que tiveram indisponibilidade no dia, independentemente de terem atingido ou não o limiar configurado |
+| RN58 | Se nenhum sistema teve indisponibilidade no dia, o relatório diário do Administrador não é gerado |
+| RN59 | O relatório exibe a relação hierárquica entre os sistemas que tiveram indisponibilidade no dia |
+| RN60 | O relatório segue o mesmo formato do Relatório por Limiar (cabeçalho, tabela de períodos por sistema, total do dia, assinatura do Diretor DTI), porém **sem** código verificador e **sem** código do usuário |
+| RN61 | O relatório diário é disponibilizado para consulta na página de relatórios do Portal de Serviço Administrativo com referência d-1 |
+| RN62 | O Administrador pode gerar um relatório parcial do dia atual sob demanda via botão "Gerar Parcial" — o relatório parcial indica que está em andamento e não possui código verificador |
+| RN63 | Falha na geração do relatório diário gera exceção enviada ao sistema de log do tribunal |
+
+---
+
+### Cenário 55 — Relatório diário gerado com todos os sistemas com indisponibilidade
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E um ou mais sistemas tiveram indisponibilidade registrada no dia
+Quando o relatório diário do Administrador é gerado à meia-noite
+Então o relatório inclui todos os sistemas que tiveram indisponibilidade no dia
+E para cada sistema são exibidos todos os períodos com hora de início, hora de término e tempo do período
+E o total acumulado do dia é exibido por sistema
+E a relação hierárquica entre os sistemas é indicada no relatório
+```
+
+---
+
+### Cenário 56 — Relatório diário inclui sistemas abaixo do limiar
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E o sistema A acumulou 90 minutos de indisponibilidade (abaixo do limiar de 120 minutos)
+Quando o relatório diário do Administrador é gerado à meia-noite
+Então o sistema A é incluído no relatório diário do Administrador
+E seus períodos de indisponibilidade são exibidos normalmente
+```
+
+---
+
+### Cenário 57 — Relatório diário não é gerado quando não há indisponibilidades
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E nenhum sistema teve indisponibilidade registrada no dia
+Quando o processamento do fechamento do dia é executado
+Então o relatório diário do Administrador não é gerado
+E a consulta da data pelo Administrador exibe mensagem informando que não houve indisponibilidades no dia
+```
+
+---
+
+### Cenário 58 — Relatório diário exibe relação hierárquica entre sistemas
+
+```gherkin
+Dado que o sistema A (pai) e o sistema B (filho) tiveram indisponibilidade no dia
+Quando o relatório diário do Administrador é gerado à meia-noite
+Então ambos os sistemas são exibidos no relatório com seus respectivos períodos
+E a relação hierárquica entre sistema A (pai) e sistema B (filho) é indicada no relatório
+```
+
+---
+
+### Cenário 59 — Formato do relatório diário sem código verificador e sem código do usuário
+
+```gherkin
+Dado que um ou mais sistemas tiveram indisponibilidade no dia
+Quando o relatório diário do Administrador é gerado à meia-noite
+Então o relatório contém cabeçalho com logo e nome do tribunal
+E o título "Indisponibilidade Técnica dos Sistemas"
+E a data de referência do dia
+E a tabela de períodos de indisponibilidade por sistema
+E o total de indisponibilidade do dia por sistema
+E a assinatura do Diretor DTI com nome e cargo
+E o relatório não contém código verificador
+E o relatório não contém código do usuário
+```
+
+---
+
+### Cenário 60 — Administrador consulta relatório diário disponível (d-1)
+
+```gherkin
+Dado que o Administrador está autenticado no Portal de Serviço Administrativo
+E existe um relatório diário gerado para a data consultada (d-1 ou anterior)
+Quando o Administrador busca por uma data específica
+Então o relatório diário é exibido com todos os sistemas que tiveram indisponibilidade naquele dia
+E a relação hierárquica entre os sistemas é indicada
+```
+
+---
+
+### Cenário 61 — Administrador gera relatório parcial do dia atual
+
+```gherkin
+Dado que o Administrador está autenticado no Portal de Serviço Administrativo
+Quando o Administrador aciona o botão "Gerar Parcial"
+Então o sistema gera um relatório com todas as indisponibilidades registradas até o momento atual
+E o relatório exibe indicação de que se trata de um relatório parcial em andamento
+E os períodos de indisponibilidade ainda abertos são exibidos com horário de início mas sem horário de fim
+E a relação hierárquica entre os sistemas é indicada
+E o relatório não contém código verificador nem código do usuário
+```
+
+---
+
+### Cenário 62 — Falha na geração do relatório diário
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E um ou mais sistemas tiveram indisponibilidade no dia
+Quando ocorre uma falha durante a geração do relatório diário do Administrador
+Então uma exceção é gerada
+E a exceção é enviada ao sistema de log do tribunal
+E o relatório não é disponibilizado para consulta
+```
+
+---
+
+### Pontos em Aberto — Relatório Diário do Administrador
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+### Cobertura — Relatório Diário do Administrador
+
+| Cenário | Tipo |
+|---------|------|
+| 55 — Relatório gerado com todos os sistemas com indisponibilidade | Happy path |
+| 56 — Sistemas abaixo do limiar incluídos no relatório | Regra de negócio — sem filtro de limiar |
+| 57 — Nenhuma indisponibilidade — relatório não gerado | Alternativo — sem dados |
+| 58 — Relação hierárquica exibida | Regra de negócio — hierarquia |
+| 59 — Formato sem código verificador e sem código do usuário | Regra de negócio — formato |
+| 60 — Administrador consulta relatório d-1 | Happy path — consulta |
+| 61 — Administrador gera relatório parcial | Happy path — parcial |
+| 62 — Falha na geração | Exceção — resiliência |
