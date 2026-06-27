@@ -729,3 +729,155 @@ E a relação hierárquica é exibida nos relatórios
 | 39 — Usuário não autenticado | Exceção — segurança |
 | 40 — Token sem claim admin exibe visão de usuário | Regra de negócio — perfil |
 | 41 — Token com claim admin exibe visão de administrador | Regra de negócio — perfil |
+
+---
+
+## Feature: Relatório por Limiar
+
+**In order to** declarar formalmente as indisponibilidades técnicas dos sistemas para fins de petição processual
+**As** Sistema de Monitoramento
+**I want** gerar ao final de cada dia um relatório assinado e autenticável com todos os sistemas que acumularam indisponibilidade total igual ou superior ao limiar configurado
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN40 | O relatório por limiar é gerado automaticamente ao final do dia (meia-noite), junto com o relatório diário do Administrador |
+| RN41 | O limiar de indisponibilidade é configurável via arquivo de configuração do projeto (padrão: 120 minutos) |
+| RN42 | Um sistema entra no relatório por limiar se a **soma total** de indisponibilidade do dia for **maior ou igual** ao limiar configurado, independentemente de os períodos serem contínuos ou não |
+| RN43 | O relatório exibe apenas os sistemas que atingiram ou ultrapassaram o limiar — sistemas abaixo do limiar não aparecem |
+| RN44 | Para cada sistema no relatório, são exibidos todos os períodos de indisponibilidade do dia (hora de início, hora de término, tempo do período) e o total acumulado do dia |
+| RN45 | O relatório é disponibilizado apenas na página de consulta do Portal de Serviços — não é enviado por e-mail |
+| RN46 | O relatório contém: cabeçalho com logo e nome do tribunal, título "Indisponibilidade Técnica dos Sistemas", data de referência, tabela de períodos por sistema, assinatura do Diretor DTI (nome + cargo), QR Code com URL de autenticação, código verificador e código do usuário |
+| RN47 | O código verificador é gerado pelo sistema de monitoramento, único por relatório diário |
+| RN48 | O código do usuário é gerado e gerenciado pelo sistema de monitoramento, único por usuário, e incluído no relatório de acordo com o usuário que o acessa |
+| RN49 | Se nenhum sistema atingir o limiar no dia, nenhum relatório por limiar é gerado — a consulta da data exibe mensagem informando ausência de indisponibilidades |
+| RN50 | Falha na geração do relatório gera exceção enviada ao sistema de log do tribunal |
+
+---
+
+### Cenário 42 — Sistema acumula indisponibilidade igual ao limiar — entra no relatório
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E o sistema A acumulou exatamente 120 minutos de indisponibilidade no dia
+E o limiar configurado é de 120 minutos
+Quando o relatório por limiar é gerado à meia-noite
+Então o sistema A é incluído no relatório por limiar
+E todos os períodos de indisponibilidade do sistema A são exibidos com hora de início, hora de término e tempo do período
+E o total acumulado do dia é exibido para o sistema A
+```
+
+---
+
+### Cenário 43 — Sistema acumula indisponibilidade superior ao limiar em períodos não contínuos
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E o sistema A teve dois períodos de indisponibilidade no dia: 60 minutos e 75 minutos
+E a soma total é 135 minutos, superior ao limiar de 120 minutos
+Quando o relatório por limiar é gerado à meia-noite
+Então o sistema A é incluído no relatório por limiar
+E os dois períodos de indisponibilidade são exibidos individualmente
+E o total acumulado do dia exibe 135 minutos
+```
+
+---
+
+### Cenário 44 — Sistema acumula indisponibilidade abaixo do limiar — não entra no relatório
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E o sistema A acumulou 90 minutos de indisponibilidade no dia
+E o limiar configurado é de 120 minutos
+Quando o relatório por limiar é gerado à meia-noite
+Então o sistema A não é incluído no relatório por limiar
+```
+
+---
+
+### Cenário 45 — Nenhum sistema atinge o limiar — relatório não é gerado
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E nenhum sistema acumulou indisponibilidade igual ou superior ao limiar no dia
+Quando o processamento do fechamento do dia é executado
+Então nenhum relatório por limiar é gerado para o dia
+E a consulta da data exibe mensagem informando que não houve indisponibilidades no dia
+```
+
+---
+
+### Cenário 46 — Relatório gerado contém estrutura completa com autenticação
+
+```gherkin
+Dado que um ou mais sistemas atingiram o limiar de indisponibilidade no dia
+Quando o relatório por limiar é gerado à meia-noite
+Então o relatório contém cabeçalho com logo e nome do tribunal
+E o título "Indisponibilidade Técnica dos Sistemas"
+E a data de referência do dia
+E a tabela de períodos de indisponibilidade por sistema com hora de início, hora de término e tempo do período
+E o total de indisponibilidade do dia por sistema
+E a assinatura do Diretor DTI com nome e cargo
+E o QR Code com URL de autenticação, código verificador único do relatório e código do usuário correspondente ao usuário que acessa o relatório
+```
+
+---
+
+### Cenário 47 — Código verificador único por relatório diário
+
+```gherkin
+Dado que o sistema está gerando o relatório por limiar do dia
+Quando o relatório é gerado
+Então o sistema gera um código verificador único para este relatório
+E o código verificador é incluído no QR Code de autenticação
+E o mesmo código verificador é associado ao relatório para validação futura
+```
+
+---
+
+### Cenário 48 — Código do usuário incluído conforme usuário que acessa o relatório
+
+```gherkin
+Dado que o relatório por limiar está disponível para consulta
+E o usuário autenticado possui um código de usuário gerado e gerenciado pelo sistema de monitoramento
+Quando o usuário acessa o relatório
+Então o código do usuário correspondente é incluído no QR Code de autenticação do relatório
+E o relatório exibido contém o código do usuário do usuário autenticado
+```
+
+---
+
+### Cenário 49 — Falha na geração do relatório por limiar
+
+```gherkin
+Dado que o sistema de monitoramento está processando o fechamento do dia
+E um ou mais sistemas atingiram o limiar de indisponibilidade
+Quando ocorre uma falha durante a geração do relatório por limiar
+Então uma exceção é gerada
+E a exceção é enviada ao sistema de log do tribunal
+E o relatório não é disponibilizado para consulta
+```
+
+---
+
+### Pontos em Aberto — Relatório por Limiar
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+### Cobertura — Relatório por Limiar
+
+| Cenário | Tipo |
+|---------|------|
+| 42 — Sistema com indisponibilidade igual ao limiar | Happy path — limiar exato |
+| 43 — Sistema com indisponibilidade acima do limiar em períodos não contínuos | Happy path — soma do dia |
+| 44 — Sistema abaixo do limiar não entra no relatório | Regra de negócio — exclusão |
+| 45 — Nenhum sistema atinge o limiar | Alternativo — sem relatório |
+| 46 — Estrutura completa do relatório | Regra de negócio — formato |
+| 47 — Código verificador único por relatório | Regra de negócio — autenticação |
+| 48 — Código do usuário por usuário autenticado | Regra de negócio — autenticação |
+| 49 — Falha na geração do relatório | Exceção — resiliência |
