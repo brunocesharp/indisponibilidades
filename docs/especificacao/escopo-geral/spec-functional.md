@@ -881,3 +881,102 @@ E o relatório não é disponibilizado para consulta
 | 47 — Código verificador único por relatório | Regra de negócio — autenticação |
 | 48 — Código do usuário por usuário autenticado | Regra de negócio — autenticação |
 | 49 — Falha na geração do relatório | Exceção — resiliência |
+
+---
+
+## Feature: Autenticação de Relatório
+
+**In order to** verificar a autenticidade e legitimidade de um relatório de indisponibilidade emitido pelo TCE
+**As** Usuário autenticado no Portal de Serviços
+**I want** informar o código verificador e o código do usuário para validar e visualizar o relatório original
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN51 | A funcionalidade de autenticação de relatório está disponível na página de relatórios de indisponibilidade do Portal de Serviços |
+| RN52 | O acesso à autenticação requer o mesmo nível de autenticação da página de relatórios — usuário autenticado via Portal de Serviços (gov.br) ou Portal Administrativo (AD) |
+| RN53 | A autenticação é realizada informando o código verificador (único por relatório) e o código do usuário (único por usuário) |
+| RN54 | Quando ambos os códigos são válidos e correspondem a um relatório existente, o relatório original é exibido |
+| RN55 | Quando qualquer um dos códigos é inválido ou não existe no sistema, o sistema exibe mensagem informando que o relatório não foi encontrado |
+
+---
+
+### Cenário 50 — Autenticação com códigos válidos exibe o relatório
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+E possui um código verificador e um código do usuário válidos correspondentes a um relatório existente
+Quando o usuário aciona o botão de autenticação na página de relatórios
+E informa o código verificador e o código do usuário
+Então o sistema localiza o relatório correspondente
+E exibe o relatório de indisponibilidade original
+```
+
+---
+
+### Cenário 51 — Autenticação com código verificador inválido
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+Quando o usuário aciona o botão de autenticação na página de relatórios
+E informa um código verificador que não existe no sistema
+Então o sistema exibe mensagem informando que o relatório não foi encontrado
+```
+
+---
+
+### Cenário 52 — Autenticação com código do usuário inválido
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+E informa um código verificador válido
+Quando o usuário informa um código do usuário que não corresponde ao relatório
+Então o sistema exibe mensagem informando que o relatório não foi encontrado
+```
+
+---
+
+### Cenário 53 — Usuário não autenticado tenta acessar autenticação de relatório
+
+```gherkin
+Dado que o usuário não está autenticado no Portal de Serviços
+Quando o usuário tenta acessar a funcionalidade de autenticação de relatório
+Então o sistema redireciona o usuário para a página de login do Portal de Serviços
+E o acesso à autenticação não é concedido
+```
+
+---
+
+### Cenário 54 — Relatório autenticado é exibido no formato original
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+E informou códigos verificador e do usuário válidos
+Quando o sistema localiza o relatório correspondente
+Então o relatório é exibido com a mesma estrutura do relatório original
+E contém cabeçalho com logo e nome do tribunal
+E a tabela de períodos de indisponibilidade por sistema
+E a assinatura do Diretor DTI
+E o QR Code com os códigos de autenticação
+```
+
+---
+
+### Pontos em Aberto — Autenticação de Relatório
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+### Cobertura — Autenticação de Relatório
+
+| Cenário | Tipo |
+|---------|------|
+| 50 — Códigos válidos exibem o relatório | Happy path |
+| 51 — Código verificador inválido | Exceção — código não encontrado |
+| 52 — Código do usuário inválido | Exceção — código não corresponde |
+| 53 — Usuário não autenticado | Exceção — segurança |
+| 54 — Relatório exibido no formato original | Regra de negócio — formato |
