@@ -423,3 +423,151 @@ E o período de indisponibilidade não é persistido no banco
 | 22 — Serviço Removido não verificado | Regra de negócio — ciclo de vida |
 | 23 — Restart zera buffer | Exceção — resiliência |
 | 24 — Falha ao persistir no banco | Exceção — dependência externa |
+
+---
+
+## Feature: Hierarquia de Serviços
+
+**In order to** representar corretamente as relações entre serviços e enriquecer os relatórios de indisponibilidade com contexto hierárquico
+**As** Sistema de Monitoramento
+**I want** registrar indisponibilidades de forma independente para cada serviço e exibir as relações hierárquicas nos relatórios do Administrador
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN24 | Cada serviço segue o fluxo padrão de monitoramento (buffer + persistência) de forma independente, independentemente de sua posição na hierarquia |
+| RN25 | A hierarquia não interfere no processo de detecção de indisponibilidade — pai e filho possuem seus próprios registros no buffer e no banco |
+| RN26 | Um serviço pode ter múltiplos pais e múltiplos filhos na hierarquia |
+| RN27 | No relatório do Usuário, apenas a indisponibilidade do sistema acessado pelo usuário é exibida, sem informações hierárquicas |
+| RN28 | No relatório do Administrador, todos os serviços com indisponibilidade no dia são exibidos com seus respectivos períodos, acompanhados da indicação de relação hierárquica |
+| RN29 | A relação hierárquica é exibida no relatório do Administrador independentemente de pai e filho terem estado indisponíveis ao mesmo tempo — basta que ambos tenham tido indisponibilidade no mesmo dia |
+| RN30 | Quando um serviço pai volta a funcionar, seu período de indisponibilidade é fechado no banco independentemente do status dos filhos |
+| RN31 | Quando um serviço filho volta a funcionar, seu período de indisponibilidade é fechado no banco independentemente do status do pai |
+
+---
+
+### Cenário 25 — Serviço pai indisponível segue fluxo normal do buffer
+
+```gherkin
+Dado que existe um serviço pai com status Ativo no monitoramento
+E o serviço pai não possui registro no buffer
+Quando o endpoint do serviço pai retorna status code fora do intervalo 200–204
+Então um registro é criado no buffer para o serviço pai
+E nenhum período de indisponibilidade é persistido no banco para o serviço pai
+E o monitoramento dos serviços filhos continua de forma independente
+```
+
+---
+
+### Cenário 26 — Serviço filho indisponível segue fluxo normal do buffer
+
+```gherkin
+Dado que existe um serviço filho com status Ativo no monitoramento
+E o serviço filho não possui registro no buffer
+Quando o endpoint do serviço filho retorna status code fora do intervalo 200–204
+Então um registro é criado no buffer para o serviço filho
+E nenhum período de indisponibilidade é persistido no banco para o serviço filho
+E o monitoramento do serviço pai continua de forma independente
+```
+
+---
+
+### Cenário 27 — Pai e filho indisponíveis simultaneamente — registros independentes no banco
+
+```gherkin
+Dado que existe um serviço pai e um serviço filho com status Ativo no monitoramento
+E ambos possuem registro no buffer indicando a primeira falha
+Quando ambos os endpoints retornam status code fora do intervalo 200–204 na verificação seguinte
+Então o período de indisponibilidade do serviço pai é persistido no banco de forma independente
+E o período de indisponibilidade do serviço filho é persistido no banco de forma independente
+E cada serviço possui seu próprio registro de início de indisponibilidade
+```
+
+---
+
+### Cenário 28 — Pai volta antes do filho
+
+```gherkin
+Dado que o serviço pai e o serviço filho possuem períodos de indisponibilidade abertos no banco
+Quando o endpoint do serviço pai retorna status code entre 200 e 204
+E o endpoint do serviço filho ainda retorna status code fora do intervalo 200–204
+Então o período de indisponibilidade do serviço pai é fechado no banco com o horário de fim
+E o registro do serviço pai é removido do buffer
+E o período de indisponibilidade do serviço filho permanece aberto no banco
+```
+
+---
+
+### Cenário 29 — Filho volta antes do pai
+
+```gherkin
+Dado que o serviço pai e o serviço filho possuem períodos de indisponibilidade abertos no banco
+Quando o endpoint do serviço filho retorna status code entre 200 e 204
+E o endpoint do serviço pai ainda retorna status code fora do intervalo 200–204
+Então o período de indisponibilidade do serviço filho é fechado no banco com o horário de fim
+E o registro do serviço filho é removido do buffer
+E o período de indisponibilidade do serviço pai permanece aberto no banco
+```
+
+---
+
+### Cenário 30 — Relatório do Usuário exibe apenas o sistema acessado, sem hierarquia
+
+```gherkin
+Dado que o serviço A (pai) e o serviço B (filho) tiveram indisponibilidade no dia
+E o usuário acessa apenas o serviço B
+Quando o usuário consulta o relatório de indisponibilidade do dia
+Então o relatório exibe apenas o período de indisponibilidade do serviço B
+E nenhuma informação sobre o serviço A ou sobre a relação hierárquica é exibida
+```
+
+---
+
+### Cenário 31 — Relatório do Administrador exibe todos os serviços com relação hierárquica
+
+```gherkin
+Dado que o serviço A (pai) e o serviço B (filho) tiveram indisponibilidade no mesmo dia
+E ambos possuem períodos de indisponibilidade registrados no banco para o dia
+Quando o Administrador consulta o relatório de indisponibilidade do dia
+Então o relatório exibe o período de indisponibilidade do serviço A
+E o relatório exibe o período de indisponibilidade do serviço B
+E a relação hierárquica entre serviço A (pai) e serviço B (filho) é indicada no relatório
+```
+
+---
+
+### Cenário 32 — Relatório do Administrador exibe hierarquia mesmo com indisponibilidades em horários distintos
+
+```gherkin
+Dado que o serviço A (pai) ficou indisponível das 08h às 09h
+E o serviço B (filho) ficou indisponível das 10h às 11h no mesmo dia
+E ambos os períodos estão registrados no banco
+Quando o Administrador consulta o relatório de indisponibilidade do dia
+Então o relatório exibe o período de indisponibilidade do serviço A com seus horários
+E o relatório exibe o período de indisponibilidade do serviço B com seus horários
+E a relação hierárquica entre serviço A (pai) e serviço B (filho) é indicada no relatório
+```
+
+---
+
+### Pontos em Aberto — Hierarquia de Serviços
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+### Cobertura — Hierarquia de Serviços
+
+| Cenário | Tipo |
+|---------|------|
+| 25 — Pai indisponível segue fluxo do buffer | Regra de negócio — independência |
+| 26 — Filho indisponível segue fluxo do buffer | Regra de negócio — independência |
+| 27 — Pai e filho indisponíveis simultaneamente | Happy path — registros independentes |
+| 28 — Pai volta antes do filho | Alternativo — recuperação parcial |
+| 29 — Filho volta antes do pai | Alternativo — recuperação parcial |
+| 30 — Relatório do Usuário sem hierarquia | Regra de negócio — relatório usuário |
+| 31 — Relatório do Administrador com hierarquia simultânea | Happy path — relatório admin |
+| 32 — Relatório do Administrador com hierarquia em horários distintos | Alternativo — relatório admin |
