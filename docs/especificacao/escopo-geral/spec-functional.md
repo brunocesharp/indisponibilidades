@@ -571,3 +571,161 @@ E a relação hierárquica entre serviço A (pai) e serviço B (filho) é indica
 | 30 — Relatório do Usuário sem hierarquia | Regra de negócio — relatório usuário |
 | 31 — Relatório do Administrador com hierarquia simultânea | Happy path — relatório admin |
 | 32 — Relatório do Administrador com hierarquia em horários distintos | Alternativo — relatório admin |
+
+---
+
+## Feature: Consulta de Relatórios
+
+**In order to** acessar informações de indisponibilidade de forma estruturada e auditável
+**As** Usuário ou Administrador de Sistemas
+**I want** consultar relatórios de indisponibilidade por data, com visibilidade adequada ao meu perfil
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN32 | Relatórios de indisponibilidade são gerados com referência d-1 — apenas após o encerramento do dia o relatório é finalizado e liberado para consulta |
+| RN33 | O tipo de relatório exibido é determinado pelo perfil do usuário identificado via claim `listaGruposSistema` do token SSO |
+| RN34 | Usuários sem a claim `PRT_SRV_ADMINISTRADORES` visualizam o relatório de usuário — sistemas com indisponibilidade no dia consultado |
+| RN35 | Usuários com a claim `PRT_SRV_ADMINISTRADORES` visualizam o relatório de administrador — todos os sistemas com indisponibilidade no dia, com relação hierárquica indicada |
+| RN36 | Quando não há indisponibilidades registradas para a data consultada, o sistema exibe mensagem informando ausência de indisponibilidades — para ambos os perfis |
+| RN37 | O Administrador pode gerar um relatório parcial do dia atual sob demanda via botão "Gerar Parcial" — o relatório parcial indica que está em andamento e reflete as indisponibilidades até o momento da geração |
+| RN38 | O usuário não autenticado não tem acesso à página de relatórios — é redirecionado para o login do Portal de Serviços |
+| RN39 | A consulta por data não possui limite de período histórico — qualquer data pode ser consultada |
+
+---
+
+### Cenário 33 — Usuário consulta data com relatório disponível
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+E não possui a claim PRT_SRV_ADMINISTRADORES no token
+E existem sistemas com indisponibilidade registrada na data consultada (d-1 ou anterior)
+Quando o usuário busca por uma data específica
+Então o sistema exibe o relatório com todos os sistemas que tiveram indisponibilidade naquele dia
+E os períodos de indisponibilidade de cada sistema são exibidos
+E nenhuma informação hierárquica é exibida
+```
+
+---
+
+### Cenário 34 — Usuário consulta data sem indisponibilidades
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+E não possui a claim PRT_SRV_ADMINISTRADORES no token
+E não existem sistemas com indisponibilidade registrada na data consultada
+Quando o usuário busca por uma data específica
+Então o sistema exibe mensagem informando que não houve indisponibilidades naquele dia
+```
+
+---
+
+### Cenário 35 — Usuário tenta consultar data futura ou data do dia atual
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviços
+E não possui a claim PRT_SRV_ADMINISTRADORES no token
+Quando o usuário busca por uma data futura ou pela data do dia atual
+Então o sistema exibe mensagem informando que não há relatório disponível para a data selecionada
+```
+
+---
+
+### Cenário 36 — Administrador consulta data com relatório disponível
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviço Administrativo
+E possui a claim PRT_SRV_ADMINISTRADORES no token
+E existem sistemas com indisponibilidade registrada na data consultada (d-1 ou anterior)
+Quando o Administrador busca por uma data específica
+Então o sistema exibe o relatório com todos os sistemas que tiveram indisponibilidade naquele dia
+E os períodos de indisponibilidade de cada sistema são exibidos com seus respectivos horários
+E a relação hierárquica entre os sistemas é indicada no relatório
+```
+
+---
+
+### Cenário 37 — Administrador consulta data sem indisponibilidades
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviço Administrativo
+E possui a claim PRT_SRV_ADMINISTRADORES no token
+E não existem sistemas com indisponibilidade registrada na data consultada
+Quando o Administrador busca por uma data específica
+Então o sistema exibe mensagem informando que não houve indisponibilidades naquele dia
+```
+
+---
+
+### Cenário 38 — Administrador gera relatório parcial do dia atual
+
+```gherkin
+Dado que o usuário está autenticado no Portal de Serviço Administrativo
+E possui a claim PRT_SRV_ADMINISTRADORES no token
+Quando o Administrador aciona o botão "Gerar Parcial"
+Então o sistema gera um relatório com as indisponibilidades registradas até o momento atual
+E o relatório exibe uma indicação de que se trata de um relatório parcial em andamento
+E os períodos de indisponibilidade ainda abertos são exibidos com horário de início mas sem horário de fim
+E a relação hierárquica entre os sistemas é indicada no relatório
+```
+
+---
+
+### Cenário 39 — Usuário não autenticado tenta acessar a página de relatórios
+
+```gherkin
+Dado que o usuário não está autenticado no Portal de Serviços
+Quando o usuário tenta acessar a página de relatórios de indisponibilidade
+Então o sistema redireciona o usuário para a página de login do Portal de Serviços
+E o acesso à página de relatórios não é concedido
+```
+
+---
+
+### Cenário 40 — Token sem claim de administrador exibe relatório de usuário
+
+```gherkin
+Dado que o usuário está autenticado
+E o token não possui a claim PRT_SRV_ADMINISTRADORES
+Quando o usuário acessa a página de relatórios
+Então o sistema exibe a visão de relatório de usuário
+E nenhuma funcionalidade exclusiva do Administrador é exibida (botão "Gerar Parcial", hierarquia)
+```
+
+---
+
+### Cenário 41 — Token com claim de administrador exibe relatório de administrador
+
+```gherkin
+Dado que o usuário está autenticado
+E o token possui a claim listaGruposSistema com valor PRT_SRV_ADMINISTRADORES
+Quando o usuário acessa a página de relatórios
+Então o sistema exibe a visão de relatório de administrador
+E o botão "Gerar Parcial" está disponível
+E a relação hierárquica é exibida nos relatórios
+```
+
+---
+
+### Pontos em Aberto — Consulta de Relatórios
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+### Cobertura — Consulta de Relatórios
+
+| Cenário | Tipo |
+|---------|------|
+| 33 — Usuário consulta data com relatório | Happy path — usuário |
+| 34 — Usuário consulta data sem indisponibilidades | Alternativo — sem dados |
+| 35 — Usuário consulta data futura ou atual | Exceção — data inválida |
+| 36 — Administrador consulta data com relatório | Happy path — administrador |
+| 37 — Administrador consulta data sem indisponibilidades | Alternativo — sem dados |
+| 38 — Administrador gera relatório parcial | Happy path — parcial |
+| 39 — Usuário não autenticado | Exceção — segurança |
+| 40 — Token sem claim admin exibe visão de usuário | Regra de negócio — perfil |
+| 41 — Token com claim admin exibe visão de administrador | Regra de negócio — perfil |
