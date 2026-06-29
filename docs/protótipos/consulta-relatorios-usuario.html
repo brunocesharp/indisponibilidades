@@ -37,7 +37,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--color-bg); color: var(--color-neutral-800); min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* HEADER */
     .header { background: var(--color-primary-dark); color: white; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-md); }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-logo { width: 32px; height: 32px; background: white; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary-dark); font-size: 14px; }
@@ -46,10 +45,8 @@
     .header-user { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .header-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
 
-    /* LAYOUT */
     .layout { display: flex; flex: 1; }
 
-    /* SIDEBAR */
     .sidebar { width: 240px; min-height: calc(100vh - 60px); background: var(--color-surface); border-right: 1px solid var(--color-neutral-200); padding: 20px 0; flex-shrink: 0; }
     .sidebar-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-neutral-400); padding: 0 20px 8px; }
     .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; font-weight: 500; color: var(--color-neutral-600); cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; }
@@ -58,21 +55,17 @@
     .sidebar-icon { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
     .sidebar-item.active .sidebar-icon { opacity: 1; }
 
-    /* MAIN */
     .main { flex: 1; padding: 28px 32px; }
 
-    /* BREADCRUMB */
     .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-neutral-400); margin-bottom: 20px; }
     .breadcrumb a { color: var(--color-neutral-400); text-decoration: none; }
     .breadcrumb-sep { color: var(--color-neutral-300); }
     .breadcrumb-current { color: var(--color-neutral-700); font-weight: 500; }
 
-    /* PAGE HEADER */
     .page-header { margin-bottom: 24px; }
     .page-title { font-size: 22px; font-weight: 700; color: var(--color-neutral-900); letter-spacing: -0.02em; }
     .page-desc { font-size: 13px; color: var(--color-neutral-500); margin-top: 4px; }
 
-    /* SEARCH CARD */
     .search-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 24px; }
     .search-card-title { font-size: 14px; font-weight: 600; color: var(--color-neutral-800); margin-bottom: 16px; }
     .search-row { display: flex; gap: 12px; align-items: flex-end; }
@@ -81,7 +74,6 @@
     .form-input { padding: 9px 12px; border: 1px solid var(--color-neutral-300); border-radius: var(--radius-md); font-size: 13px; font-family: inherit; color: var(--color-neutral-800); background: var(--color-surface); outline: none; transition: border 0.15s; }
     .form-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
 
-    /* BUTTONS */
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
     .btn-primary { background: var(--color-primary); color: white; }
     .btn-primary:hover { background: var(--color-primary-dark); }
@@ -90,14 +82,25 @@
     .btn-ghost { background: transparent; color: var(--color-primary); border: 1px solid var(--color-primary-light); }
     .btn-ghost:hover { background: var(--color-primary-light); }
 
-    /* RESULTS */
-    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .results-title { font-size: 14px; font-weight: 600; color: var(--color-neutral-800); }
-    .results-date { font-size: 12px; color: var(--color-neutral-500); }
+    /* RELATÓRIO — header único */
+    .relatorio-header {
+      background: var(--color-surface);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+      border-bottom: 2px solid var(--color-primary-light);
+    }
+    .relatorio-header-info { display: flex; flex-direction: column; gap: 3px; }
+    .relatorio-header-title { font-size: 14px; font-weight: 700; color: var(--color-neutral-900); }
+    .relatorio-header-meta { font-size: 12px; color: var(--color-neutral-500); }
+    .relatorio-header-meta strong { color: var(--color-neutral-700); }
 
     /* SYSTEM CARD */
-    .system-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 16px; overflow: hidden; }
-    .system-card-header { padding: 16px 20px; border-bottom: 1px solid var(--color-neutral-100); display: flex; align-items: center; justify-content: space-between; }
+    .system-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-top: none; box-shadow: var(--shadow-sm); }
+    .system-card:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .system-card-header { padding: 16px 20px; border-bottom: 1px solid var(--color-neutral-100); display: flex; align-items: center; justify-content: space-between; background: var(--color-neutral-50); }
     .system-info { display: flex; align-items: center; gap: 12px; }
     .system-icon { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--color-danger-light); display: flex; align-items: center; justify-content: center; font-size: 16px; }
     .system-name { font-size: 15px; font-weight: 700; color: var(--color-neutral-900); }
@@ -107,31 +110,19 @@
     .system-total-value { font-size: 20px; font-weight: 700; color: var(--color-danger); }
     .system-total-unit { font-size: 12px; color: var(--color-neutral-500); font-weight: 500; }
 
-    /* PERIODS TABLE */
     .periods-table { width: 100%; }
-    .periods-thead th { padding: 10px 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-500); background: var(--color-neutral-50); border-bottom: 1px solid var(--color-neutral-100); text-align: left; }
+    .periods-thead th { padding: 10px 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-500); background: var(--color-surface); border-bottom: 1px solid var(--color-neutral-100); text-align: left; }
     .periods-tbody td { padding: 12px 20px; font-size: 13px; color: var(--color-neutral-700); border-bottom: 1px solid var(--color-neutral-100); }
     .periods-tbody tr:last-child td { border-bottom: none; }
     .period-time { font-weight: 500; color: var(--color-neutral-900); }
     .period-duration { display: inline-flex; align-items: center; gap: 4px; background: var(--color-danger-light); color: var(--color-danger); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 
-    /* AUTH BUTTON */
-    .auth-bar { padding: 12px 20px; background: var(--color-neutral-50); border-top: 1px solid var(--color-neutral-200); display: flex; align-items: center; justify-content: space-between; }
-    .auth-bar-text { font-size: 12px; color: var(--color-neutral-500); }
-
-    /* EMPTY STATE */
+    .no-search { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; }
     .empty-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; display: none; }
     .empty-icon { font-size: 40px; margin-bottom: 12px; }
     .empty-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
     .empty-desc { font-size: 13px; color: var(--color-neutral-400); }
 
-    /* NO SEARCH STATE */
-    .no-search { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; }
-    .no-search-icon { font-size: 40px; margin-bottom: 12px; }
-    .no-search-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
-    .no-search-desc { font-size: 13px; color: var(--color-neutral-400); }
-
-    /* MODAL */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
     .modal { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: 0 20px 40px rgba(0,0,0,0.2); width: 440px; max-width: calc(100vw - 40px); }
@@ -142,11 +133,11 @@
     .modal-footer { padding: 16px 24px; border-top: 1px solid var(--color-neutral-200); display: flex; justify-content: flex-end; gap: 8px; }
     .modal-desc { font-size: 13px; color: var(--color-neutral-600); line-height: 1.6; margin-bottom: 16px; }
     .code-fields { display: flex; flex-direction: column; gap: 14px; }
+    .form-group-modal { display: flex; flex-direction: column; gap: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
   <header class="header">
     <div class="header-brand">
       <div class="header-logo">TC</div>
@@ -162,8 +153,6 @@
   </header>
 
   <div class="layout">
-
-    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-label">Serviços</div>
       <div class="sidebar-item">
@@ -176,17 +165,13 @@
       </div>
     </aside>
 
-    <!-- MAIN -->
     <main class="main">
-
-      <!-- BREADCRUMB -->
       <div class="breadcrumb">
         <a href="#">Início</a>
         <span class="breadcrumb-sep">›</span>
         <span class="breadcrumb-current">Relatórios de Indisponibilidade</span>
       </div>
 
-      <!-- PAGE HEADER -->
       <div class="page-header">
         <div class="page-title">Relatórios de Indisponibilidade</div>
         <div class="page-desc">Consulte os registros de indisponibilidade dos sistemas por data. Disponível a partir do dia seguinte (d-1).</div>
@@ -204,24 +189,28 @@
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             Consultar
           </button>
-
+          <button class="btn btn-ghost" onclick="openModal('modal-autenticar')">
+            🔐 Autenticar relatório
+          </button>
         </div>
       </div>
 
-      <!-- ESTADO INICIAL: nenhuma busca ainda -->
+      <!-- ESTADO INICIAL -->
       <div class="no-search" id="estado-inicial">
-        <div class="no-search-icon">📅</div>
-        <div class="no-search-title">Selecione uma data para consultar</div>
-        <div class="no-search-desc">Os relatórios ficam disponíveis a partir do dia seguinte ao ocorrido.</div>
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">Selecione uma data para consultar</div>
+        <div class="empty-desc">Os relatórios ficam disponíveis a partir do dia seguinte ao ocorrido.</div>
       </div>
 
       <!-- ESTADO: resultados -->
       <div id="estado-resultados" style="display:none;">
-        <div class="results-header">
-          <div class="results-title">Sistemas com indisponibilidade em <strong>23 de janeiro de 2026</strong></div>
-          <button class="btn btn-ghost" onclick="openModal('modal-autenticar')">
-            🔐 Autenticar relatório
-          </button>
+
+        <!-- HEADER ÚNICO DO RELATÓRIO -->
+        <div class="relatorio-header">
+          <div class="relatorio-header-info">
+            <div class="relatorio-header-title">Sistemas com indisponibilidade em <strong>23 de janeiro de 2026</strong></div>
+            <div class="relatorio-header-meta">🔒 Relatório assinado digitalmente · Código verificador: <strong>0000001</strong></div>
+          </div>
         </div>
 
         <!-- CARD: E-TCE -->
@@ -255,10 +244,6 @@
               </tr>
             </tbody>
           </table>
-          <div class="auth-bar">
-            <span class="auth-bar-text">🔒 Relatório assinado digitalmente · Código verificador: <strong>0000001</strong></span>
-            <button class="btn btn-ghost" style="padding:6px 12px; font-size:12px;" onclick="openModal('modal-autenticar')">Validar autenticidade</button>
-          </div>
         </div>
 
         <!-- CARD: Consulta Processual -->
@@ -297,11 +282,8 @@
               </tr>
             </tbody>
           </table>
-          <div class="auth-bar">
-            <span class="auth-bar-text">🔒 Relatório assinado digitalmente · Código verificador: <strong>0000001</strong></span>
-            <button class="btn btn-ghost" style="padding:6px 12px; font-size:12px;" onclick="openModal('modal-autenticar')">Validar autenticidade</button>
-          </div>
         </div>
+
       </div>
 
       <!-- ESTADO: sem indisponibilidades -->
@@ -322,13 +304,13 @@
         <button class="modal-close" onclick="closeModal('modal-autenticar')">×</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Informe o código verificador e o código do usuário impressos no relatório para confirmar sua autenticidade.</p>
+        <p class="modal-desc">Informe o código verificador e o código do usuário impressos no relatório para confirmar sua autenticidade e visualizá-lo.</p>
         <div class="code-fields">
-          <div class="form-group">
+          <div class="form-group-modal">
             <label class="form-label">Código Verificador</label>
             <input type="text" class="form-input" placeholder="Ex: 0000001">
           </div>
-          <div class="form-group">
+          <div class="form-group-modal">
             <label class="form-label">Código do Usuário</label>
             <input type="text" class="form-input" placeholder="Ex: 000000000">
           </div>
@@ -336,7 +318,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-autenticar')">Cancelar</button>
-        <button class="btn btn-primary">Validar Relatório</button>
+        <button class="btn btn-primary">Validar e Visualizar Relatório</button>
       </div>
     </div>
   </div>
@@ -346,11 +328,6 @@
       document.getElementById('estado-inicial').style.display = 'none';
       document.getElementById('estado-vazio').style.display = 'none';
       document.getElementById('estado-resultados').style.display = 'block';
-    }
-    function mostrarVazio() {
-      document.getElementById('estado-inicial').style.display = 'none';
-      document.getElementById('estado-resultados').style.display = 'none';
-      document.getElementById('estado-vazio').style.display = 'block';
     }
     function openModal(id) { document.getElementById(id).classList.add('open'); }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
