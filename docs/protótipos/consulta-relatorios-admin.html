@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monitoramento de Indisponibilidade — Consulta de Relatórios (Administrador)</title>
+  <title>Monitoramento de Indisponibilidade — Relatórios (Administrador)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -13,7 +13,7 @@
       --color-success: #057a55;
       --color-success-light: #def7ec;
       --color-warning: #9f580a;
-      --color-warning-light: #fdf6b2;
+      --color-warning-bg: #fdf6b2;
       --color-danger: #c81e1e;
       --color-danger-light: #fde8e8;
       --color-neutral-50: #f9fafb;
@@ -28,15 +28,15 @@
       --color-neutral-900: #111827;
       --color-surface: #ffffff;
       --color-bg: #f3f4f6;
-      --radius-sm: 6px;
-      --radius-md: 8px;
-      --radius-lg: 12px;
+      --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: var(--color-bg); color: var(--color-neutral-800); min-height: 100vh; display: flex; flex-direction: column; }
 
+    /* HEADER */
     .header { background: var(--color-primary-dark); color: white; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-md); }
     .header-brand { display: flex; align-items: center; gap: 12px; }
     .header-logo { width: 32px; height: 32px; background: white; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary-dark); font-size: 14px; }
@@ -47,6 +47,7 @@
 
     .layout { display: flex; flex: 1; }
 
+    /* SIDEBAR */
     .sidebar { width: 240px; min-height: calc(100vh - 60px); background: var(--color-surface); border-right: 1px solid var(--color-neutral-200); padding: 20px 0; flex-shrink: 0; }
     .sidebar-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-neutral-400); padding: 0 20px 8px; }
     .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; font-weight: 500; color: var(--color-neutral-600); cursor: pointer; border-left: 3px solid transparent; }
@@ -66,370 +67,432 @@
     .page-title { font-size: 22px; font-weight: 700; color: var(--color-neutral-900); letter-spacing: -0.02em; }
     .page-desc { font-size: 13px; color: var(--color-neutral-500); margin-top: 4px; }
 
+    /* SEARCH CARD */
     .search-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 24px; }
     .search-card-title { font-size: 14px; font-weight: 600; color: var(--color-neutral-800); margin-bottom: 16px; }
     .search-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-label { font-size: 12px; font-weight: 600; color: var(--color-neutral-700); }
-    .form-input { padding: 9px 12px; border: 1px solid var(--color-neutral-300); border-radius: var(--radius-md); font-size: 13px; font-family: inherit; color: var(--color-neutral-800); background: var(--color-surface); outline: none; transition: border 0.15s; }
-    .form-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .form-input { padding: 9px 12px; border: 1px solid var(--color-neutral-300); border-radius: var(--radius-md); font-size: 13px; font-family: inherit; color: var(--color-neutral-800); background: var(--color-surface); outline: none; }
 
+    /* BUTTONS */
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
     .btn-primary { background: var(--color-primary); color: white; }
     .btn-primary:hover { background: var(--color-primary-dark); }
-    .btn-secondary { background: var(--color-surface); color: var(--color-neutral-700); border: 1px solid var(--color-neutral-300); }
-    .btn-secondary:hover { background: var(--color-neutral-50); }
-    .btn-ghost { background: transparent; color: var(--color-primary); border: 1px solid var(--color-primary-light); }
-    .btn-ghost:hover { background: var(--color-primary-light); }
     .btn-warning { background: #ff8c00; color: white; }
     .btn-warning:hover { background: #e67e00; }
+    .btn-detail { background: var(--color-primary-light); color: var(--color-primary); border: none; padding: 5px 10px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-detail:hover { background: #d0deff; }
+    .btn-secondary { background: var(--color-surface); color: var(--color-neutral-700); border: 1px solid var(--color-neutral-300); }
+    .btn-secondary:hover { background: var(--color-neutral-50); }
 
     /* PARCIAL BADGE */
-    .parcial-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--color-warning-light); color: var(--color-warning); border: 1px solid #f6d860; padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; }
+    .parcial-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--color-warning-bg); color: var(--color-warning); border: 1px solid #f6d860; padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; }
     .parcial-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-warning); animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-    /* RELATÓRIO HEADER */
-    .relatorio-header { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); border-bottom: 2px solid var(--color-primary-light); }
-    .relatorio-header-info { display: flex; flex-direction: column; gap: 3px; }
-    .relatorio-header-title { font-size: 14px; font-weight: 700; color: var(--color-neutral-900); }
+    /* RELATORIO HEADER */
+    .relatorio-header { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--color-primary-light); }
+    .relatorio-header.parcial { border-bottom-color: #f6d860; }
+    .relatorio-header-title { font-size: 14px; font-weight: 700; color: var(--color-neutral-900); margin-bottom: 3px; }
     .relatorio-header-meta { font-size: 12px; color: var(--color-neutral-500); }
-    .relatorio-header-meta strong { color: var(--color-neutral-700); }
 
-    /* PARCIAL HEADER */
-    .relatorio-header.parcial { border-bottom: 2px solid #f6d860; }
+    /* TREETABLE */
+    .treetable-wrap { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-top: none; border-radius: 0 0 var(--radius-lg) var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .treetable { width: 100%; border-collapse: collapse; }
+    .treetable thead th { padding: 11px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-500); background: var(--color-neutral-50); border-bottom: 1px solid var(--color-neutral-200); text-align: left; }
+    .treetable tbody tr { border-bottom: 1px solid var(--color-neutral-100); transition: background 0.1s; }
+    .treetable tbody tr:last-child { border-bottom: none; }
+    .treetable tbody tr:hover { background: var(--color-neutral-50); }
+    .treetable tbody td { padding: 11px 16px; font-size: 13px; color: var(--color-neutral-700); vertical-align: middle; }
 
-    /* SYSTEM CARD */
-    .system-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-top: none; box-shadow: var(--shadow-sm); }
-    .system-card:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
-    .system-card-header { padding: 16px 20px; border-bottom: 1px solid var(--color-neutral-100); display: flex; align-items: center; justify-content: space-between; background: var(--color-neutral-50); }
-    .system-info { display: flex; align-items: center; gap: 12px; }
-    .system-icon { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--color-danger-light); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-    .system-icon.warning { background: var(--color-warning-light); }
-    .system-meta { display: flex; flex-direction: column; gap: 4px; }
-    .system-name { font-size: 15px; font-weight: 700; color: var(--color-neutral-900); }
-    .system-sigla { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
-    .system-right { display: flex; align-items: center; gap: 20px; }
-    .system-total { text-align: right; }
-    .system-total-label { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
-    .system-total-value { font-size: 20px; font-weight: 700; color: var(--color-danger); }
-    .system-total-unit { font-size: 12px; color: var(--color-neutral-500); font-weight: 500; }
+    /* TREE NODE */
+    .tree-cell { display: flex; align-items: center; gap: 0; }
+    .tree-indent { flex-shrink: 0; }
+    .tree-toggle { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: var(--radius-sm); color: var(--color-neutral-400); font-size: 10px; flex-shrink: 0; transition: all 0.15s; }
+    .tree-toggle:hover { background: var(--color-neutral-100); color: var(--color-neutral-700); }
+    .tree-toggle.expanded { color: var(--color-primary); }
+    .tree-toggle.leaf { cursor: default; color: transparent; }
+    .tree-icon { width: 28px; height: 28px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 10px; flex-shrink: 0; }
+    .tree-icon.danger { background: var(--color-danger-light); }
+    .tree-icon.warning { background: var(--color-warning-bg); }
+    .tree-icon.neutral { background: var(--color-neutral-100); }
+    .node-name { font-weight: 600; color: var(--color-neutral-900); font-size: 13px; }
+    .node-sigla { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
 
-    /* HIERARQUIA */
-    .hierarchy-info { display: flex; flex-direction: column; gap: 4px; text-align: right; }
-    .hierarchy-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-400); }
-    .hierarchy-tags { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
-    .hierarchy-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--color-primary-light); color: var(--color-primary); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-    .hierarchy-none { font-size: 11px; color: var(--color-neutral-300); }
+    /* TOTAL BADGE */
+    .total-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .total-badge.above { background: var(--color-danger-light); color: var(--color-danger); }
+    .total-badge.below { background: var(--color-warning-bg); color: var(--color-warning); }
+    .total-badge.open { background: var(--color-warning-bg); color: var(--color-warning); }
 
-    /* PERIODS TABLE */
-    .periods-table { width: 100%; }
+    /* EMPTY / INITIAL STATE */
+    .state-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; }
+    .state-icon { font-size: 40px; margin-bottom: 12px; }
+    .state-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
+    .state-desc { font-size: 13px; color: var(--color-neutral-400); }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 640px; max-width: calc(100vw - 40px); max-height: calc(100vh - 80px); overflow-y: auto; }
+    .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--color-neutral-200); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--color-neutral-900); }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--color-neutral-400); font-size: 20px; line-height: 1; padding: 4px; }
+    .modal-close:hover { color: var(--color-neutral-700); }
+    .modal-body { padding: 0; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--color-neutral-200); display: flex; justify-content: flex-end; }
+
+    /* DETAIL CARD (inside modal) */
+    .detail-card-header { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: var(--color-neutral-50); border-bottom: 1px solid var(--color-neutral-100); }
+    .detail-system-info { display: flex; align-items: center; gap: 12px; }
+    .detail-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--color-danger-light); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .detail-name { font-size: 16px; font-weight: 700; color: var(--color-neutral-900); }
+    .detail-sigla { font-size: 12px; color: var(--color-neutral-400); font-weight: 500; margin-top: 2px; }
+    .detail-right { display: flex; align-items: flex-start; gap: 24px; }
+    .detail-hierarchy { text-align: right; }
+    .detail-hierarchy-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-400); margin-bottom: 4px; }
+    .hierarchy-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--color-primary-light); color: var(--color-primary); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; margin: 2px; }
+    .detail-total { text-align: right; }
+    .detail-total-label { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
+    .detail-total-value { font-size: 22px; font-weight: 700; color: var(--color-danger); }
+    .detail-total-unit { font-size: 12px; color: var(--color-neutral-500); font-weight: 500; }
+    .periods-table { width: 100%; border-collapse: collapse; }
     .periods-thead th { padding: 10px 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-500); background: var(--color-surface); border-bottom: 1px solid var(--color-neutral-100); text-align: left; }
     .periods-tbody td { padding: 12px 20px; font-size: 13px; color: var(--color-neutral-700); border-bottom: 1px solid var(--color-neutral-100); }
     .periods-tbody tr:last-child td { border-bottom: none; }
     .period-time { font-weight: 500; color: var(--color-neutral-900); }
     .period-open { font-weight: 500; color: var(--color-warning); font-style: italic; }
     .period-duration { display: inline-flex; align-items: center; gap: 4px; background: var(--color-danger-light); color: var(--color-danger); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-    .period-duration-open { display: inline-flex; align-items: center; gap: 4px; background: var(--color-warning-light); color: var(--color-warning); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-
-    .no-search { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; }
-    .empty-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; display: none; }
-    .empty-icon { font-size: 40px; margin-bottom: 12px; }
-    .empty-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
-    .empty-desc { font-size: 13px; color: var(--color-neutral-400); }
-
-    /* TABS */
-    .tabs { display: flex; gap: 0; margin-bottom: 0; }
-    .tab { padding: 8px 18px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--color-neutral-200); background: var(--color-neutral-100); color: var(--color-neutral-500); transition: all 0.15s; }
-    .tab:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
-    .tab:last-child { border-radius: 0 var(--radius-md) var(--radius-md) 0; border-left: none; }
-    .tab.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
   </style>
 </head>
 <body>
 
-  <header class="header">
-    <div class="header-brand">
-      <div class="header-logo">TC</div>
-      <div>
-        <div class="header-title">Portal de Serviço Administrativo</div>
-        <div class="header-subtitle">TCE-MG — Tribunal de Contas do Estado de Minas Gerais</div>
-      </div>
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">TC</div>
+    <div>
+      <div class="header-title">Portal de Serviço Administrativo</div>
+      <div class="header-subtitle">TCE-MG — Tribunal de Contas do Estado de Minas Gerais</div>
     </div>
-    <div class="header-user">
-      <div class="header-avatar">CA</div>
-      <span>Carlos Andrade</span>
-    </div>
-  </header>
-
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-label">Monitoramento</div>
-      <div class="sidebar-item">
-        <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-        Gerenciamento de Serviços
-      </div>
-      <div class="sidebar-item active">
-        <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Relatórios
-      </div>
-    </aside>
-
-    <main class="main">
-      <div class="breadcrumb">
-        <a href="#">Início</a>
-        <span class="breadcrumb-sep">›</span>
-        <span class="breadcrumb-current">Relatórios de Indisponibilidade</span>
-      </div>
-
-      <div class="page-header">
-        <div class="page-title">Relatórios de Indisponibilidade</div>
-        <div class="page-desc">Visualize todas as indisponibilidades registradas por data, incluindo relações hierárquicas entre sistemas.</div>
-      </div>
-
-      <!-- SEARCH CARD -->
-      <div class="search-card">
-        <div class="search-card-title">Selecione uma data ou gere um relatório parcial do dia atual</div>
-        <div class="search-row">
-          <div class="form-group">
-            <label class="form-label">Data de referência</label>
-            <input type="date" class="form-input" value="2026-01-23" max="2026-06-28">
-          </div>
-          <button class="btn btn-primary" onclick="mostrarResultados()">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            Consultar
-          </button>
-          <button class="btn btn-warning" onclick="mostrarParcial()">
-            ⚡ Gerar Parcial
-          </button>
-        </div>
-      </div>
-
-      <!-- ESTADO INICIAL -->
-      <div class="no-search" id="estado-inicial">
-        <div class="empty-icon">📅</div>
-        <div class="empty-title">Selecione uma data para consultar</div>
-        <div class="empty-desc">Os relatórios consolidados ficam disponíveis a partir do dia seguinte. Use "Gerar Parcial" para ver o dia atual.</div>
-      </div>
-
-      <!-- ESTADO: resultados d-1 -->
-      <div id="estado-resultados" style="display:none;">
-        <div class="relatorio-header">
-          <div class="relatorio-header-info">
-            <div class="relatorio-header-title">Todas as indisponibilidades em <strong>23 de janeiro de 2026</strong></div>
-            <div class="relatorio-header-meta">📋 Relatório diário consolidado · Assinado pelo Diretor DTI</div>
-          </div>
-        </div>
-
-        <!-- E-TCE — sem pais -->
-        <div class="system-card">
-          <div class="system-card-header">
-            <div class="system-info">
-              <div class="system-icon">🖥️</div>
-              <div class="system-meta">
-                <div class="system-name">E-TCE</div>
-                <div class="system-sigla">ETCE</div>
-              </div>
-            </div>
-            <div class="system-right">
-              <div class="hierarchy-info">
-                <div class="hierarchy-label">Hierarquia (Pais)</div>
-                <div class="hierarchy-tags"><span class="hierarchy-none">— Sem pai</span></div>
-              </div>
-              <div class="system-total">
-                <div class="system-total-label">Total de indisponibilidade</div>
-                <div><span class="system-total-value">120</span> <span class="system-total-unit">minutos</span></div>
-              </div>
-            </div>
-          </div>
-          <table class="periods-table">
-            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
-            <tbody class="periods-tbody">
-              <tr>
-                <td class="period-time">23/01/2026 11:35</td>
-                <td class="period-time">23/01/2026 13:35</td>
-                <td><span class="period-duration">⏱ 120 min</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Consulta Processual — filho de ETCE -->
-        <div class="system-card">
-          <div class="system-card-header">
-            <div class="system-info">
-              <div class="system-icon">⚖️</div>
-              <div class="system-meta">
-                <div class="system-name">Consulta Processual</div>
-                <div class="system-sigla">CPRO</div>
-              </div>
-            </div>
-            <div class="system-right">
-              <div class="hierarchy-info">
-                <div class="hierarchy-label">Hierarquia (Pais)</div>
-                <div class="hierarchy-tags">
-                  <span class="hierarchy-tag">🖥️ ETCE</span>
-                </div>
-              </div>
-              <div class="system-total">
-                <div class="system-total-label">Total de indisponibilidade</div>
-                <div><span class="system-total-value">135</span> <span class="system-total-unit">minutos</span></div>
-              </div>
-            </div>
-          </div>
-          <table class="periods-table">
-            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
-            <tbody class="periods-tbody">
-              <tr>
-                <td class="period-time">23/01/2026 14:00</td>
-                <td class="period-time">23/01/2026 15:00</td>
-                <td><span class="period-duration">⏱ 60 min</span></td>
-              </tr>
-              <tr>
-                <td class="period-time">23/01/2026 17:00</td>
-                <td class="period-time">23/01/2026 18:15</td>
-                <td><span class="period-duration">⏱ 75 min</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Portal de Serviços — abaixo do limiar, filho de ETCE e CPRO -->
-        <div class="system-card">
-          <div class="system-card-header">
-            <div class="system-info">
-              <div class="system-icon warning">🌐</div>
-              <div class="system-meta">
-                <div class="system-name">Portal de Serviços</div>
-                <div class="system-sigla">PSRV</div>
-              </div>
-            </div>
-            <div class="system-right">
-              <div class="hierarchy-info">
-                <div class="hierarchy-label">Hierarquia (Pais)</div>
-                <div class="hierarchy-tags">
-                  <span class="hierarchy-tag">🖥️ ETCE</span>
-                  <span class="hierarchy-tag">⚖️ CPRO</span>
-                </div>
-              </div>
-              <div class="system-total">
-                <div class="system-total-label">Total de indisponibilidade</div>
-                <div><span class="system-total-value" style="color:var(--color-warning);">45</span> <span class="system-total-unit">minutos</span></div>
-              </div>
-            </div>
-          </div>
-          <table class="periods-table">
-            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
-            <tbody class="periods-tbody">
-              <tr>
-                <td class="period-time">23/01/2026 11:35</td>
-                <td class="period-time">23/01/2026 12:20</td>
-                <td><span class="period-duration" style="background:var(--color-warning-light); color:var(--color-warning);">⏱ 45 min</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ESTADO: parcial do dia atual -->
-      <div id="estado-parcial" style="display:none;">
-        <div class="relatorio-header parcial">
-          <div class="relatorio-header-info">
-            <div class="relatorio-header-title">Indisponibilidades em andamento — <strong>29 de junho de 2026</strong></div>
-            <div class="relatorio-header-meta">
-              <span class="parcial-badge"><span class="parcial-dot"></span>Relatório parcial · Atualizado às 14:32</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- E-TCE parcial — período ainda aberto -->
-        <div class="system-card">
-          <div class="system-card-header">
-            <div class="system-info">
-              <div class="system-icon">🖥️</div>
-              <div class="system-meta">
-                <div class="system-name">E-TCE</div>
-                <div class="system-sigla">ETCE</div>
-              </div>
-            </div>
-            <div class="system-right">
-              <div class="hierarchy-info">
-                <div class="hierarchy-label">Hierarquia (Pais)</div>
-                <div class="hierarchy-tags"><span class="hierarchy-none">— Sem pai</span></div>
-              </div>
-              <div class="system-total">
-                <div class="system-total-label">Total até o momento</div>
-                <div><span class="system-total-value" style="color:var(--color-warning);">47</span> <span class="system-total-unit">minutos</span></div>
-              </div>
-            </div>
-          </div>
-          <table class="periods-table">
-            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
-            <tbody class="periods-tbody">
-              <tr>
-                <td class="period-time">29/06/2026 13:45</td>
-                <td class="period-open">Em andamento...</td>
-                <td><span class="period-duration-open">⏱ 47 min e contando</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Consulta Processual parcial — período fechado -->
-        <div class="system-card">
-          <div class="system-card-header">
-            <div class="system-info">
-              <div class="system-icon">⚖️</div>
-              <div class="system-meta">
-                <div class="system-name">Consulta Processual</div>
-                <div class="system-sigla">CPRO</div>
-              </div>
-            </div>
-            <div class="system-right">
-              <div class="hierarchy-info">
-                <div class="hierarchy-label">Hierarquia (Pais)</div>
-                <div class="hierarchy-tags"><span class="hierarchy-tag">🖥️ ETCE</span></div>
-              </div>
-              <div class="system-total">
-                <div class="system-total-label">Total até o momento</div>
-                <div><span class="system-total-value" style="color:var(--color-warning);">30</span> <span class="system-total-unit">minutos</span></div>
-              </div>
-            </div>
-          </div>
-          <table class="periods-table">
-            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
-            <tbody class="periods-tbody">
-              <tr>
-                <td class="period-time">29/06/2026 10:00</td>
-                <td class="period-time">29/06/2026 10:30</td>
-                <td><span class="period-duration">⏱ 30 min</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ESTADO: sem indisponibilidades -->
-      <div class="empty-card" id="estado-vazio">
-        <div class="empty-icon">✅</div>
-        <div class="empty-title">Nenhuma indisponibilidade registrada</div>
-        <div class="empty-desc">Não houve indisponibilidades nos sistemas na data consultada.</div>
-      </div>
-
-    </main>
   </div>
+  <div class="header-user">
+    <div class="header-avatar">CA</div>
+    <span>Carlos Andrade</span>
+  </div>
+</header>
 
-  <script>
-    function mostrarResultados() {
-      hide('estado-inicial'); hide('estado-vazio'); hide('estado-parcial');
-      show('estado-resultados');
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-label">Monitoramento</div>
+    <div class="sidebar-item">
+      <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+      Gerenciamento de Serviços
+    </div>
+    <div class="sidebar-item active">
+      <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Relatórios
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb">
+      <a href="#">Início</a>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-current">Relatórios de Indisponibilidade</span>
+    </div>
+
+    <div class="page-header">
+      <div class="page-title">Relatórios de Indisponibilidade</div>
+      <div class="page-desc">Visualize todas as indisponibilidades em estrutura hierárquica. Expanda os nós para ver os sistemas filhos.</div>
+    </div>
+
+    <!-- SEARCH CARD -->
+    <div class="search-card">
+      <div class="search-card-title">Selecione uma data ou gere um relatório parcial do dia atual</div>
+      <div class="search-row">
+        <div class="form-group">
+          <label class="form-label">Data de referência</label>
+          <input type="date" class="form-input" value="2026-01-23" max="2026-06-28">
+        </div>
+        <button class="btn btn-primary" onclick="mostrar('resultados')">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          Consultar
+        </button>
+        <button class="btn btn-warning" onclick="mostrar('parcial')">⚡ Gerar Parcial</button>
+      </div>
+    </div>
+
+    <!-- ESTADO INICIAL -->
+    <div class="state-card" id="estado-inicial">
+      <div class="state-icon">📅</div>
+      <div class="state-title">Selecione uma data para consultar</div>
+      <div class="state-desc">Os relatórios consolidados ficam disponíveis a partir do dia seguinte. Use "Gerar Parcial" para o dia atual.</div>
+    </div>
+
+    <!-- ESTADO: resultados d-1 -->
+    <div id="estado-resultados" style="display:none;">
+      <div class="relatorio-header">
+        <div>
+          <div class="relatorio-header-title">Todas as indisponibilidades em <strong>23 de janeiro de 2026</strong></div>
+          <div class="relatorio-header-meta">📋 Relatório diário consolidado · Assinado pelo Diretor DTI</div>
+        </div>
+      </div>
+      <div class="treetable-wrap">
+        <table class="treetable">
+          <thead>
+            <tr>
+              <th style="width:50%">Nome da Aplicação</th>
+              <th>Total de Indisponibilidade</th>
+              <th style="width:120px">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- E-TCE: raiz, expandido -->
+            <tr>
+              <td>
+                <div class="tree-cell">
+                  <div style="width:0px" class="tree-indent"></div>
+                  <span class="tree-toggle expanded" onclick="toggleNode('etce')">▼</span>
+                  <div class="tree-icon danger">🖥️</div>
+                  <div>
+                    <div class="node-name">E-TCE</div>
+                    <div class="node-sigla">ETCE</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="total-badge above">⏱ 120 min</span></td>
+              <td><button class="btn-detail" onclick="openDetail('etce')">Ver detalhes</button></td>
+            </tr>
+            <!-- Consulta Processual: filho de E-TCE, expandido -->
+            <tr id="node-etce">
+              <td>
+                <div class="tree-cell">
+                  <div style="width:24px" class="tree-indent"></div>
+                  <span class="tree-toggle expanded" onclick="toggleNode('cpro')">▼</span>
+                  <div class="tree-icon danger">⚖️</div>
+                  <div>
+                    <div class="node-name">Consulta Processual</div>
+                    <div class="node-sigla">CPRO</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="total-badge above">⏱ 135 min</span></td>
+              <td><button class="btn-detail" onclick="openDetail('cpro')">Ver detalhes</button></td>
+            </tr>
+            <!-- Portal de Serviços: filho de CPRO, folha -->
+            <tr id="node-cpro">
+              <td>
+                <div class="tree-cell">
+                  <div style="width:48px" class="tree-indent"></div>
+                  <span class="tree-toggle leaf">▶</span>
+                  <div class="tree-icon warning">🌐</div>
+                  <div>
+                    <div class="node-name">Portal de Serviços</div>
+                    <div class="node-sigla">PSRV</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="total-badge below">⏱ 45 min</span></td>
+              <td><button class="btn-detail" onclick="openDetail('psrv')">Ver detalhes</button></td>
+            </tr>
+            <!-- SIGESP: raiz sem filhos -->
+            <tr>
+              <td>
+                <div class="tree-cell">
+                  <div style="width:0px" class="tree-indent"></div>
+                  <span class="tree-toggle leaf">▶</span>
+                  <div class="tree-icon neutral">🗄️</div>
+                  <div>
+                    <div class="node-name">SIGESP</div>
+                    <div class="node-sigla">SGSP</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="total-badge below">⏱ 20 min</span></td>
+              <td><button class="btn-detail" onclick="openDetail('sgsp')">Ver detalhes</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ESTADO: parcial -->
+    <div id="estado-parcial" style="display:none;">
+      <div class="relatorio-header parcial">
+        <div>
+          <div class="relatorio-header-title">Indisponibilidades em andamento — <strong>29 de junho de 2026</strong></div>
+          <div class="relatorio-header-meta">
+            <span class="parcial-badge"><span class="parcial-dot"></span>Relatório parcial · Atualizado às 14:32</span>
+          </div>
+        </div>
+      </div>
+      <div class="treetable-wrap">
+        <table class="treetable">
+          <thead>
+            <tr>
+              <th style="width:50%">Nome da Aplicação</th>
+              <th>Total até o momento</th>
+              <th style="width:120px">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="tree-cell">
+                  <div style="width:0px" class="tree-indent"></div>
+                  <span class="tree-toggle expanded" onclick="toggleNode('etce-p')">▼</span>
+                  <div class="tree-icon danger">🖥️</div>
+                  <div>
+                    <div class="node-name">E-TCE</div>
+                    <div class="node-sigla">ETCE</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="total-badge open">⏱ 47 min e contando</span></td>
+              <td><button class="btn-detail" onclick="openDetail('etce-parcial')">Ver detalhes</button></td>
+            </tr>
+            <tr id="node-etce-p">
+              <td>
+                <div class="tree-cell">
+                  <div style="width:24px" class="tree-indent"></div>
+                  <span class="tree-toggle leaf">▶</span>
+                  <div class="tree-icon warning">⚖️</div>
+                  <div>
+                    <div class="node-name">Consulta Processual</div>
+                    <div class="node-sigla">CPRO</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="total-badge below">⏱ 30 min</span></td>
+              <td><button class="btn-detail" onclick="openDetail('cpro-parcial')">Ver detalhes</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ESTADO VAZIO -->
+    <div class="state-card" id="estado-vazio" style="display:none;">
+      <div class="state-icon">✅</div>
+      <div class="state-title">Nenhuma indisponibilidade registrada</div>
+      <div class="state-desc">Não houve indisponibilidades nos sistemas na data consultada.</div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL DETALHE -->
+<div class="modal-overlay" id="modal-detalhe">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-titulo">Detalhes do Serviço</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-conteudo"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const details = {
+    etce: {
+      nome: 'E-TCE', sigla: 'ETCE', icon: '🖥️', total: 120, pais: [],
+      periodos: [{ ini: '23/01/2026 11:35', fim: '23/01/2026 13:35', dur: '120 min' }]
+    },
+    cpro: {
+      nome: 'Consulta Processual', sigla: 'CPRO', icon: '⚖️', total: 135, pais: ['ETCE'],
+      periodos: [
+        { ini: '23/01/2026 14:00', fim: '23/01/2026 15:00', dur: '60 min' },
+        { ini: '23/01/2026 17:00', fim: '23/01/2026 18:15', dur: '75 min' }
+      ]
+    },
+    psrv: {
+      nome: 'Portal de Serviços', sigla: 'PSRV', icon: '🌐', total: 45, pais: ['ETCE', 'CPRO'],
+      periodos: [{ ini: '23/01/2026 11:35', fim: '23/01/2026 12:20', dur: '45 min' }]
+    },
+    sgsp: {
+      nome: 'SIGESP', sigla: 'SGSP', icon: '🗄️', total: 20, pais: [],
+      periodos: [{ ini: '23/01/2026 09:10', fim: '23/01/2026 09:30', dur: '20 min' }]
+    },
+    'etce-parcial': {
+      nome: 'E-TCE', sigla: 'ETCE', icon: '🖥️', total: '47 min e contando', pais: [],
+      periodos: [{ ini: '29/06/2026 13:45', fim: null, dur: '47 min e contando' }]
+    },
+    'cpro-parcial': {
+      nome: 'Consulta Processual', sigla: 'CPRO', icon: '⚖️', total: 30, pais: ['ETCE'],
+      periodos: [{ ini: '29/06/2026 10:00', fim: '29/06/2026 10:30', dur: '30 min' }]
     }
-    function mostrarParcial() {
-      hide('estado-inicial'); hide('estado-vazio'); hide('estado-resultados');
-      show('estado-parcial');
-    }
-    function show(id) { document.getElementById(id).style.display = 'block'; }
-    function hide(id) { document.getElementById(id).style.display = 'none'; }
-  </script>
+  };
+
+  function openDetail(key) {
+    const d = details[key];
+    document.getElementById('modal-titulo').textContent = `Detalhes — ${d.nome}`;
+    const paisHtml = d.pais.length
+      ? d.pais.map(p => `<span class="hierarchy-tag">${p}</span>`).join('')
+      : '<span style="font-size:12px;color:var(--color-neutral-300)">— Sem pai</span>';
+    const totalVal = typeof d.total === 'number'
+      ? `<span class="detail-total-value">${d.total}</span> <span class="detail-total-unit">minutos</span>`
+      : `<span class="detail-total-value" style="font-size:15px;color:var(--color-warning)">${d.total}</span>`;
+    const rows = d.periodos.map(p => `
+      <tr>
+        <td class="period-time">${p.ini}</td>
+        <td class="${p.fim ? 'period-time' : 'period-open'}">${p.fim ?? 'Em andamento...'}</td>
+        <td><span class="period-duration" ${!p.fim ? 'style="background:var(--color-warning-bg);color:var(--color-warning)"' : ''}>⏱ ${p.dur}</span></td>
+      </tr>`).join('');
+    document.getElementById('modal-conteudo').innerHTML = `
+      <div class="detail-card-header">
+        <div class="detail-system-info">
+          <div class="detail-icon">${d.icon}</div>
+          <div>
+            <div class="detail-name">${d.nome}</div>
+            <div class="detail-sigla">${d.sigla}</div>
+          </div>
+        </div>
+        <div class="detail-right">
+          <div class="detail-hierarchy">
+            <div class="detail-hierarchy-label">Hierarquia (Pais)</div>
+            <div>${paisHtml}</div>
+          </div>
+          <div class="detail-total">
+            <div class="detail-total-label">Total de indisponibilidade</div>
+            <div>${totalVal}</div>
+          </div>
+        </div>
+      </div>
+      <table class="periods-table">
+        <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+        <tbody class="periods-tbody">${rows}</tbody>
+      </table>`;
+    document.getElementById('modal-detalhe').classList.add('open');
+  }
+
+  function closeModal() { document.getElementById('modal-detalhe').classList.remove('open'); }
+
+  document.getElementById('modal-detalhe').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-detalhe')) closeModal();
+  });
+
+  const expanded = { etce: true, cpro: true, 'etce-p': true };
+
+  function toggleNode(key) {
+    const row = document.getElementById('node-' + key);
+    if (!row) return;
+    expanded[key] = !expanded[key];
+    row.style.display = expanded[key] ? '' : 'none';
+    const btn = event.target;
+    btn.textContent = expanded[key] ? '▼' : '▶';
+    btn.classList.toggle('expanded', expanded[key]);
+  }
+
+  function mostrar(tipo) {
+    document.getElementById('estado-inicial').style.display = 'none';
+    document.getElementById('estado-resultados').style.display = tipo === 'resultados' ? 'block' : 'none';
+    document.getElementById('estado-parcial').style.display = tipo === 'parcial' ? 'block' : 'none';
+    document.getElementById('estado-vazio').style.display = 'none';
+  }
+</script>
 </body>
 </html>
