@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoramento de Indisponibilidade — Consulta de Relatórios (Administrador)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #1a56db;
+      --color-primary-dark: #1e429f;
+      --color-primary-light: #ebf0ff;
+      --color-success: #057a55;
+      --color-success-light: #def7ec;
+      --color-warning: #9f580a;
+      --color-warning-light: #fdf6b2;
+      --color-danger: #c81e1e;
+      --color-danger-light: #fde8e8;
+      --color-neutral-50: #f9fafb;
+      --color-neutral-100: #f3f4f6;
+      --color-neutral-200: #e5e7eb;
+      --color-neutral-300: #d1d5db;
+      --color-neutral-400: #9ca3af;
+      --color-neutral-500: #6b7280;
+      --color-neutral-600: #4b5563;
+      --color-neutral-700: #374151;
+      --color-neutral-800: #1f2937;
+      --color-neutral-900: #111827;
+      --color-surface: #ffffff;
+      --color-bg: #f3f4f6;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--color-bg); color: var(--color-neutral-800); min-height: 100vh; display: flex; flex-direction: column; }
+
+    .header { background: var(--color-primary-dark); color: white; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-md); }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo { width: 32px; height: 32px; background: white; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary-dark); font-size: 14px; }
+    .header-title { font-size: 15px; font-weight: 600; }
+    .header-subtitle { font-size: 12px; opacity: 0.75; }
+    .header-user { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .header-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+
+    .layout { display: flex; flex: 1; }
+
+    .sidebar { width: 240px; min-height: calc(100vh - 60px); background: var(--color-surface); border-right: 1px solid var(--color-neutral-200); padding: 20px 0; flex-shrink: 0; }
+    .sidebar-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-neutral-400); padding: 0 20px 8px; }
+    .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; font-weight: 500; color: var(--color-neutral-600); cursor: pointer; border-left: 3px solid transparent; }
+    .sidebar-item:hover { background: var(--color-neutral-50); }
+    .sidebar-item.active { background: var(--color-primary-light); color: var(--color-primary); border-left-color: var(--color-primary); font-weight: 600; }
+    .sidebar-icon { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
+    .sidebar-item.active .sidebar-icon { opacity: 1; }
+
+    .main { flex: 1; padding: 28px 32px; }
+
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-neutral-400); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--color-neutral-400); text-decoration: none; }
+    .breadcrumb-sep { color: var(--color-neutral-300); }
+    .breadcrumb-current { color: var(--color-neutral-700); font-weight: 500; }
+
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 700; color: var(--color-neutral-900); letter-spacing: -0.02em; }
+    .page-desc { font-size: 13px; color: var(--color-neutral-500); margin-top: 4px; }
+
+    .search-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 24px; }
+    .search-card-title { font-size: 14px; font-weight: 600; color: var(--color-neutral-800); margin-bottom: 16px; }
+    .search-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--color-neutral-700); }
+    .form-input { padding: 9px 12px; border: 1px solid var(--color-neutral-300); border-radius: var(--radius-md); font-size: 13px; font-family: inherit; color: var(--color-neutral-800); background: var(--color-surface); outline: none; transition: border 0.15s; }
+    .form-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-primary { background: var(--color-primary); color: white; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+    .btn-secondary { background: var(--color-surface); color: var(--color-neutral-700); border: 1px solid var(--color-neutral-300); }
+    .btn-secondary:hover { background: var(--color-neutral-50); }
+    .btn-ghost { background: transparent; color: var(--color-primary); border: 1px solid var(--color-primary-light); }
+    .btn-ghost:hover { background: var(--color-primary-light); }
+    .btn-warning { background: #ff8c00; color: white; }
+    .btn-warning:hover { background: #e67e00; }
+
+    /* PARCIAL BADGE */
+    .parcial-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--color-warning-light); color: var(--color-warning); border: 1px solid #f6d860; padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; }
+    .parcial-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-warning); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* RELATÓRIO HEADER */
+    .relatorio-header { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); border-bottom: 2px solid var(--color-primary-light); }
+    .relatorio-header-info { display: flex; flex-direction: column; gap: 3px; }
+    .relatorio-header-title { font-size: 14px; font-weight: 700; color: var(--color-neutral-900); }
+    .relatorio-header-meta { font-size: 12px; color: var(--color-neutral-500); }
+    .relatorio-header-meta strong { color: var(--color-neutral-700); }
+
+    /* PARCIAL HEADER */
+    .relatorio-header.parcial { border-bottom: 2px solid #f6d860; }
+
+    /* SYSTEM CARD */
+    .system-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-top: none; box-shadow: var(--shadow-sm); }
+    .system-card:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .system-card-header { padding: 16px 20px; border-bottom: 1px solid var(--color-neutral-100); display: flex; align-items: center; justify-content: space-between; background: var(--color-neutral-50); }
+    .system-info { display: flex; align-items: center; gap: 12px; }
+    .system-icon { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--color-danger-light); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .system-icon.warning { background: var(--color-warning-light); }
+    .system-meta { display: flex; flex-direction: column; gap: 4px; }
+    .system-name { font-size: 15px; font-weight: 700; color: var(--color-neutral-900); }
+    .system-sigla { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
+    .system-right { display: flex; align-items: center; gap: 20px; }
+    .system-total { text-align: right; }
+    .system-total-label { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
+    .system-total-value { font-size: 20px; font-weight: 700; color: var(--color-danger); }
+    .system-total-unit { font-size: 12px; color: var(--color-neutral-500); font-weight: 500; }
+
+    /* HIERARQUIA */
+    .hierarchy-info { display: flex; flex-direction: column; gap: 4px; text-align: right; }
+    .hierarchy-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-400); }
+    .hierarchy-tags { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
+    .hierarchy-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--color-primary-light); color: var(--color-primary); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .hierarchy-none { font-size: 11px; color: var(--color-neutral-300); }
+
+    /* PERIODS TABLE */
+    .periods-table { width: 100%; }
+    .periods-thead th { padding: 10px 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-500); background: var(--color-surface); border-bottom: 1px solid var(--color-neutral-100); text-align: left; }
+    .periods-tbody td { padding: 12px 20px; font-size: 13px; color: var(--color-neutral-700); border-bottom: 1px solid var(--color-neutral-100); }
+    .periods-tbody tr:last-child td { border-bottom: none; }
+    .period-time { font-weight: 500; color: var(--color-neutral-900); }
+    .period-open { font-weight: 500; color: var(--color-warning); font-style: italic; }
+    .period-duration { display: inline-flex; align-items: center; gap: 4px; background: var(--color-danger-light); color: var(--color-danger); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .period-duration-open { display: inline-flex; align-items: center; gap: 4px; background: var(--color-warning-light); color: var(--color-warning); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+    .no-search { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; }
+    .empty-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; display: none; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
+    .empty-desc { font-size: 13px; color: var(--color-neutral-400); }
+
+    /* TABS */
+    .tabs { display: flex; gap: 0; margin-bottom: 0; }
+    .tab { padding: 8px 18px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--color-neutral-200); background: var(--color-neutral-100); color: var(--color-neutral-500); transition: all 0.15s; }
+    .tab:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+    .tab:last-child { border-radius: 0 var(--radius-md) var(--radius-md) 0; border-left: none; }
+    .tab.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">TC</div>
+      <div>
+        <div class="header-title">Portal de Serviço Administrativo</div>
+        <div class="header-subtitle">TCE-MG — Tribunal de Contas do Estado de Minas Gerais</div>
+      </div>
+    </div>
+    <div class="header-user">
+      <div class="header-avatar">CA</div>
+      <span>Carlos Andrade</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-label">Monitoramento</div>
+      <div class="sidebar-item">
+        <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        Gerenciamento de Serviços
+      </div>
+      <div class="sidebar-item active">
+        <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Relatórios
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="breadcrumb">
+        <a href="#">Início</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">Relatórios de Indisponibilidade</span>
+      </div>
+
+      <div class="page-header">
+        <div class="page-title">Relatórios de Indisponibilidade</div>
+        <div class="page-desc">Visualize todas as indisponibilidades registradas por data, incluindo relações hierárquicas entre sistemas.</div>
+      </div>
+
+      <!-- SEARCH CARD -->
+      <div class="search-card">
+        <div class="search-card-title">Selecione uma data ou gere um relatório parcial do dia atual</div>
+        <div class="search-row">
+          <div class="form-group">
+            <label class="form-label">Data de referência</label>
+            <input type="date" class="form-input" value="2026-01-23" max="2026-06-28">
+          </div>
+          <button class="btn btn-primary" onclick="mostrarResultados()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Consultar
+          </button>
+          <button class="btn btn-warning" onclick="mostrarParcial()">
+            ⚡ Gerar Parcial
+          </button>
+        </div>
+      </div>
+
+      <!-- ESTADO INICIAL -->
+      <div class="no-search" id="estado-inicial">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">Selecione uma data para consultar</div>
+        <div class="empty-desc">Os relatórios consolidados ficam disponíveis a partir do dia seguinte. Use "Gerar Parcial" para ver o dia atual.</div>
+      </div>
+
+      <!-- ESTADO: resultados d-1 -->
+      <div id="estado-resultados" style="display:none;">
+        <div class="relatorio-header">
+          <div class="relatorio-header-info">
+            <div class="relatorio-header-title">Todas as indisponibilidades em <strong>23 de janeiro de 2026</strong></div>
+            <div class="relatorio-header-meta">📋 Relatório diário consolidado · Assinado pelo Diretor DTI</div>
+          </div>
+        </div>
+
+        <!-- E-TCE — sem pais -->
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon">🖥️</div>
+              <div class="system-meta">
+                <div class="system-name">E-TCE</div>
+                <div class="system-sigla">ETCE</div>
+              </div>
+            </div>
+            <div class="system-right">
+              <div class="hierarchy-info">
+                <div class="hierarchy-label">Hierarquia (Pais)</div>
+                <div class="hierarchy-tags"><span class="hierarchy-none">— Sem pai</span></div>
+              </div>
+              <div class="system-total">
+                <div class="system-total-label">Total de indisponibilidade</div>
+                <div><span class="system-total-value">120</span> <span class="system-total-unit">minutos</span></div>
+              </div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr>
+                <td class="period-time">23/01/2026 11:35</td>
+                <td class="period-time">23/01/2026 13:35</td>
+                <td><span class="period-duration">⏱ 120 min</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Consulta Processual — filho de ETCE -->
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon">⚖️</div>
+              <div class="system-meta">
+                <div class="system-name">Consulta Processual</div>
+                <div class="system-sigla">CPRO</div>
+              </div>
+            </div>
+            <div class="system-right">
+              <div class="hierarchy-info">
+                <div class="hierarchy-label">Hierarquia (Pais)</div>
+                <div class="hierarchy-tags">
+                  <span class="hierarchy-tag">🖥️ ETCE</span>
+                </div>
+              </div>
+              <div class="system-total">
+                <div class="system-total-label">Total de indisponibilidade</div>
+                <div><span class="system-total-value">135</span> <span class="system-total-unit">minutos</span></div>
+              </div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr>
+                <td class="period-time">23/01/2026 14:00</td>
+                <td class="period-time">23/01/2026 15:00</td>
+                <td><span class="period-duration">⏱ 60 min</span></td>
+              </tr>
+              <tr>
+                <td class="period-time">23/01/2026 17:00</td>
+                <td class="period-time">23/01/2026 18:15</td>
+                <td><span class="period-duration">⏱ 75 min</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Portal de Serviços — abaixo do limiar, filho de ETCE e CPRO -->
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon warning">🌐</div>
+              <div class="system-meta">
+                <div class="system-name">Portal de Serviços</div>
+                <div class="system-sigla">PSRV</div>
+              </div>
+            </div>
+            <div class="system-right">
+              <div class="hierarchy-info">
+                <div class="hierarchy-label">Hierarquia (Pais)</div>
+                <div class="hierarchy-tags">
+                  <span class="hierarchy-tag">🖥️ ETCE</span>
+                  <span class="hierarchy-tag">⚖️ CPRO</span>
+                </div>
+              </div>
+              <div class="system-total">
+                <div class="system-total-label">Total de indisponibilidade</div>
+                <div><span class="system-total-value" style="color:var(--color-warning);">45</span> <span class="system-total-unit">minutos</span></div>
+              </div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr>
+                <td class="period-time">23/01/2026 11:35</td>
+                <td class="period-time">23/01/2026 12:20</td>
+                <td><span class="period-duration" style="background:var(--color-warning-light); color:var(--color-warning);">⏱ 45 min</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ESTADO: parcial do dia atual -->
+      <div id="estado-parcial" style="display:none;">
+        <div class="relatorio-header parcial">
+          <div class="relatorio-header-info">
+            <div class="relatorio-header-title">Indisponibilidades em andamento — <strong>29 de junho de 2026</strong></div>
+            <div class="relatorio-header-meta">
+              <span class="parcial-badge"><span class="parcial-dot"></span>Relatório parcial · Atualizado às 14:32</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- E-TCE parcial — período ainda aberto -->
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon">🖥️</div>
+              <div class="system-meta">
+                <div class="system-name">E-TCE</div>
+                <div class="system-sigla">ETCE</div>
+              </div>
+            </div>
+            <div class="system-right">
+              <div class="hierarchy-info">
+                <div class="hierarchy-label">Hierarquia (Pais)</div>
+                <div class="hierarchy-tags"><span class="hierarchy-none">— Sem pai</span></div>
+              </div>
+              <div class="system-total">
+                <div class="system-total-label">Total até o momento</div>
+                <div><span class="system-total-value" style="color:var(--color-warning);">47</span> <span class="system-total-unit">minutos</span></div>
+              </div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr>
+                <td class="period-time">29/06/2026 13:45</td>
+                <td class="period-open">Em andamento...</td>
+                <td><span class="period-duration-open">⏱ 47 min e contando</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Consulta Processual parcial — período fechado -->
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon">⚖️</div>
+              <div class="system-meta">
+                <div class="system-name">Consulta Processual</div>
+                <div class="system-sigla">CPRO</div>
+              </div>
+            </div>
+            <div class="system-right">
+              <div class="hierarchy-info">
+                <div class="hierarchy-label">Hierarquia (Pais)</div>
+                <div class="hierarchy-tags"><span class="hierarchy-tag">🖥️ ETCE</span></div>
+              </div>
+              <div class="system-total">
+                <div class="system-total-label">Total até o momento</div>
+                <div><span class="system-total-value" style="color:var(--color-warning);">30</span> <span class="system-total-unit">minutos</span></div>
+              </div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr>
+                <td class="period-time">29/06/2026 10:00</td>
+                <td class="period-time">29/06/2026 10:30</td>
+                <td><span class="period-duration">⏱ 30 min</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ESTADO: sem indisponibilidades -->
+      <div class="empty-card" id="estado-vazio">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">Nenhuma indisponibilidade registrada</div>
+        <div class="empty-desc">Não houve indisponibilidades nos sistemas na data consultada.</div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    function mostrarResultados() {
+      hide('estado-inicial'); hide('estado-vazio'); hide('estado-parcial');
+      show('estado-resultados');
+    }
+    function mostrarParcial() {
+      hide('estado-inicial'); hide('estado-vazio'); hide('estado-resultados');
+      show('estado-parcial');
+    }
+    function show(id) { document.getElementById(id).style.display = 'block'; }
+    function hide(id) { document.getElementById(id).style.display = 'none'; }
+  </script>
+</body>
+</html>
