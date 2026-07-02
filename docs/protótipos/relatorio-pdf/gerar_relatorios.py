@@ -56,7 +56,7 @@ SISTEMAS_DIARIO = SISTEMAS_LIMIAR + [
 
 # Adiciona hierarquia aos sistemas do limiar também (para exibição opcional)
 SISTEMAS_LIMIAR[0]["hierarquia"] = None
-SISTEMAS_LIMIAR[1]["hierarquia"] = "E-TCE"
+SISTEMAS_LIMIAR[1]["hierarquia"] = None
 
 
 # ---------- Estilos ----------
