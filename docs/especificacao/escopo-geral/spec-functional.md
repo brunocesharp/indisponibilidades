@@ -210,13 +210,13 @@ E o histórico de indisponibilidades é mantido
 
 ---
 
-## Pontos em Aberto
+## Pontos em Aberto — Gerenciamento de Serviços
 
 > Nenhum ponto em aberto identificado para esta feature.
 
 ---
 
-## Cobertura
+## Cobertura — Gerenciamento de Serviços
 
 | Cenário | Tipo |
 |---------|------|
