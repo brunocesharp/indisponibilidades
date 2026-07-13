@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoramento de Indisponibilidade — Gerenciamento de Serviços</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #1a56db;
+      --color-primary-dark: #1e429f;
+      --color-primary-light: #ebf0ff;
+      --color-success: #057a55;
+      --color-success-light: #def7ec;
+      --color-warning: #9f580a;
+      --color-warning-light: #fdf6b2;
+      --color-danger: #c81e1e;
+      --color-danger-light: #fde8e8;
+      --color-neutral-50: #f9fafb;
+      --color-neutral-100: #f3f4f6;
+      --color-neutral-200: #e5e7eb;
+      --color-neutral-300: #d1d5db;
+      --color-neutral-400: #9ca3af;
+      --color-neutral-500: #6b7280;
+      --color-neutral-600: #4b5563;
+      --color-neutral-700: #374151;
+      --color-neutral-800: #1f2937;
+      --color-neutral-900: #111827;
+      --color-surface: #ffffff;
+      --color-bg: #f3f4f6;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--color-bg);
+      color: var(--color-neutral-800);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HEADER */
+    .header {
+      background: var(--color-primary-dark);
+      color: white;
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      width: 32px; height: 32px;
+      background: white;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: var(--color-primary-dark); font-size: 14px;
+    }
+    .header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .header-subtitle { font-size: 12px; opacity: 0.75; }
+    .header-user { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .header-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 13px;
+    }
+
+    /* LAYOUT */
+    .layout { display: flex; flex: 1; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px; min-height: calc(100vh - 60px);
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-neutral-200);
+      padding: 20px 0;
+      flex-shrink: 0;
+    }
+    .sidebar-section { margin-bottom: 8px; }
+    .sidebar-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--color-neutral-400);
+      padding: 0 20px 8px;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; font-size: 13px; font-weight: 500;
+      color: var(--color-neutral-600); cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .sidebar-item:hover { background: var(--color-neutral-50); color: var(--color-neutral-800); }
+    .sidebar-item.active {
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+      border-left-color: var(--color-primary);
+      font-weight: 600;
+    }
+    .sidebar-icon { width: 16px; height: 16px; opacity: 0.7; }
+    .sidebar-item.active .sidebar-icon { opacity: 1; }
+
+    /* MAIN */
+    .main { flex: 1; padding: 28px 32px; }
+
+    /* BREADCRUMB */
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-neutral-400); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--color-neutral-400); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--color-primary); }
+    .breadcrumb-sep { color: var(--color-neutral-300); }
+    .breadcrumb-current { color: var(--color-neutral-700); font-weight: 500; }
+
+    /* PAGE HEADER */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 700; color: var(--color-neutral-900); letter-spacing: -0.02em; }
+    .page-desc { font-size: 13px; color: var(--color-neutral-500); margin-top: 4px; }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: var(--radius-md);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.15s; text-decoration: none;
+    }
+    .btn-primary { background: var(--color-primary); color: white; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+    .btn-secondary { background: var(--color-surface); color: var(--color-neutral-700); border: 1px solid var(--color-neutral-300); }
+    .btn-secondary:hover { background: var(--color-neutral-50); }
+    .btn-danger-ghost { background: transparent; color: var(--color-danger); border: 1px solid var(--color-danger); }
+    .btn-danger-ghost:hover { background: var(--color-danger-light); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-icon { padding: 7px; }
+
+    /* FILTER BAR */
+    .filter-bar {
+      background: var(--color-surface);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .search-input {
+      flex: 1; display: flex; align-items: center;
+      background: var(--color-neutral-50);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      padding: 8px 12px; gap: 8px;
+    }
+    .search-input input {
+      flex: 1; border: none; background: transparent;
+      font-size: 13px; font-family: inherit; outline: none;
+      color: var(--color-neutral-800);
+    }
+    .search-input input::placeholder { color: var(--color-neutral-400); }
+    .filter-select {
+      padding: 8px 12px; border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md); font-size: 13px;
+      font-family: inherit; background: var(--color-neutral-50);
+      color: var(--color-neutral-700); cursor: pointer; outline: none;
+    }
+    .filter-label { font-size: 12px; font-weight: 500; color: var(--color-neutral-500); white-space: nowrap; }
+
+    /* TABLE */
+    .table-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--color-neutral-200);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-count { font-size: 12px; color: var(--color-neutral-500); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; padding: 11px 16px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-neutral-500);
+      background: var(--color-neutral-50);
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+    tbody tr { border-bottom: 1px solid var(--color-neutral-100); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--color-neutral-50); }
+    tbody td { padding: 13px 16px; font-size: 13px; color: var(--color-neutral-700); vertical-align: middle; }
+
+    .service-info { display: flex; flex-direction: column; gap: 2px; }
+    .service-name { font-weight: 600; color: var(--color-neutral-900); }
+    .service-sigla { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
+    .service-url { font-size: 12px; color: var(--color-neutral-400); font-family: monospace; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-ativo { background: var(--color-success-light); color: var(--color-success); }
+    .badge-ativo .badge-dot { background: var(--color-success); }
+    .badge-inativo { background: var(--color-neutral-100); color: var(--color-neutral-500); }
+    .badge-inativo .badge-dot { background: var(--color-neutral-400); }
+    .badge-removido { background: var(--color-danger-light); color: var(--color-danger); }
+    .badge-removido .badge-dot { background: var(--color-danger); }
+
+    /* HIERARCHY */
+    .hierarchy-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--color-primary-light); color: var(--color-primary);
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 500; margin: 2px;
+    }
+    .hierarchy-none { color: var(--color-neutral-300); font-size: 12px; }
+
+    /* ACTIONS */
+    .actions { display: flex; align-items: center; gap: 6px; }
+    .action-btn {
+      padding: 6px 8px; border-radius: var(--radius-sm);
+      border: 1px solid var(--color-neutral-200);
+      background: var(--color-surface); cursor: pointer;
+      font-size: 12px; color: var(--color-neutral-600);
+      transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .action-btn:hover { background: var(--color-neutral-100); }
+    .action-btn.danger:hover { background: var(--color-danger-light); color: var(--color-danger); border-color: var(--color-danger); }
+
+    /* MODAL OVERLAY */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 560px; max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 80px); overflow-y: auto;
+    }
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--color-neutral-200);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--color-neutral-900); }
+    .modal-close { background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-neutral-400); font-size: 20px; line-height: 1; }
+    .modal-close:hover { color: var(--color-neutral-700); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--color-neutral-200); display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* FORM */
+    .form-group { margin-bottom: 18px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
+    .form-label .required { color: var(--color-danger); margin-left: 2px; }
+    .form-input, .form-select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--color-neutral-300);
+      border-radius: var(--radius-md); font-size: 13px;
+      font-family: inherit; color: var(--color-neutral-800);
+      background: var(--color-surface); outline: none; transition: border 0.15s;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .form-hint { font-size: 11px; color: var(--color-neutral-400); margin-top: 4px; }
+    .form-error { font-size: 11px; color: var(--color-danger); margin-top: 4px; display: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* MULTISELECT PAIS */
+    .multiselect-box {
+      border: 1px solid var(--color-neutral-300); border-radius: var(--radius-md);
+      max-height: 120px; overflow-y: auto; padding: 8px;
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .multiselect-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--color-primary-light); color: var(--color-primary);
+      padding: 4px 8px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    }
+    .multiselect-tag button { background: none; border: none; cursor: pointer; color: inherit; font-size: 14px; line-height: 1; padding: 0 2px; }
+    .multiselect-add { display: flex; gap: 8px; margin-top: 8px; }
+    .multiselect-add select { flex: 1; }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 56px 24px; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
+    .empty-desc { font-size: 13px; color: var(--color-neutral-400); margin-bottom: 20px; }
+
+    /* STATUS TOGGLE */
+    .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--color-neutral-300);
+      border-radius: 20px; cursor: pointer; transition: 0.2s;
+    }
+    .toggle-slider:before {
+      content: ''; position: absolute;
+      width: 14px; height: 14px; left: 3px; top: 3px;
+      background: white; border-radius: 50%; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--color-success); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">TC</div>
+      <div>
+        <div class="header-title">Portal de Serviço Administrativo</div>
+        <div class="header-subtitle">TCE-MG — Tribunal de Contas do Estado de Minas Gerais</div>
+      </div>
+    </div>
+    <div class="header-user">
+      <div class="header-avatar">CA</div>
+      <span>Carlos Andrade</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Monitoramento</div>
+        <div class="sidebar-item active">
+          <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+          Gerenciamento de Serviços
+        </div>
+        <div class="sidebar-item">
+          <svg class="sidebar-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Relatórios
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- BREADCRUMB -->
+      <div class="breadcrumb">
+        <a href="#">Início</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">Gerenciamento de Serviços</span>
+      </div>
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">Gerenciamento de Serviços</div>
+          <div class="page-desc">Gerencie os sistemas monitorados, seus endpoints de healthcheck e hierarquias.</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-incluir')">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          Incluir Serviço
+        </button>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar">
+        <div class="search-input">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#9ca3af"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" placeholder="Buscar por nome ou sigla...">
+        </div>
+        <span class="filter-label">Status:</span>
+        <select class="filter-select">
+          <option>Todos</option>
+          <option>Ativo</option>
+          <option>Inativo</option>
+          <option>Removido</option>
+        </select>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-count">4 serviços encontrados</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Serviço</th>
+              <th>Endpoint Healthcheck</th>
+              <th>Hierarquia (Pais)</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="service-info">
+                  <span class="service-name">E-TCE</span>
+                  <span class="service-sigla">ETCE</span>
+                </div>
+              </td>
+              <td><span class="service-url">https://etce.tce.mg.gov.br/health</span></td>
+              <td><span class="hierarchy-none">—</span></td>
+              <td><span class="badge badge-ativo"><span class="badge-dot"></span>Ativo</span></td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" onclick="openModal('modal-editar')">✏️ Editar</button>
+                  <button class="action-btn danger" onclick="openModal('modal-inativar')">⏸ Inativar</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="service-info">
+                  <span class="service-name">Consulta Processual</span>
+                  <span class="service-sigla">CPRO</span>
+                </div>
+              </td>
+              <td><span class="service-url">https://consulta.tce.mg.gov.br/actuator/health</span></td>
+              <td>
+                <span class="hierarchy-tag">ETCE</span>
+              </td>
+              <td><span class="badge badge-ativo"><span class="badge-dot"></span>Ativo</span></td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" onclick="openModal('modal-editar')">✏️ Editar</button>
+                  <button class="action-btn danger">⏸ Inativar</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="service-info">
+                  <span class="service-name">Portal de Serviços</span>
+                  <span class="service-sigla">PSRV</span>
+                </div>
+              </td>
+              <td><span class="service-url">https://portal.tce.mg.gov.br/health</span></td>
+              <td>
+                <span class="hierarchy-tag">ETCE</span>
+                <span class="hierarchy-tag">CPRO</span>
+              </td>
+              <td><span class="badge badge-inativo"><span class="badge-dot"></span>Inativo</span></td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" onclick="openModal('modal-reativar')">▶ Ativar</button>
+                  <button class="action-btn danger" onclick="openModal('modal-remover')">🗑 Remover</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="service-info">
+                  <span class="service-name">SIGESP</span>
+                  <span class="service-sigla">SGSP</span>
+                </div>
+              </td>
+              <td><span class="service-url">https://sigesp.tce.mg.gov.br/actuator/health</span></td>
+              <td><span class="hierarchy-none">—</span></td>
+              <td><span class="badge badge-removido"><span class="badge-dot"></span>Removido</span></td>
+              <td>
+                <div class="actions">
+                  <span style="font-size:12px; color: var(--color-neutral-400);">Histórico mantido</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAL: INCLUIR SERVIÇO -->
+  <div class="modal-overlay" id="modal-incluir">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Incluir Serviço no Monitoramento</span>
+        <button class="modal-close" onclick="closeModal('modal-incluir')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Sistema <span class="required">*</span></label>
+          <select class="form-select">
+            <option value="">Selecione um sistema do inventário...</option>
+            <option>Diário Eletrônico (DIEL)</option>
+            <option>Jurisprudência TCE (JURI)</option>
+            <option>SIAC — Sistema de Acompanhamento</option>
+          </select>
+          <div class="form-hint">Exibe apenas sistemas ainda não incluídos no monitoramento.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">URL do Healthcheck <span class="required">*</span></label>
+          <input type="url" class="form-input" placeholder="https://sistema.tce.mg.gov.br/health">
+          <div class="form-hint">Deve retornar status HTTP entre 200 e 204. O endpoint será validado ao salvar.</div>
+          <div class="form-error" id="url-error">A URL informada não está funcionando. Verifique o endereço e tente novamente.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Serviços Pai <span style="color:var(--color-neutral-400); font-weight:400;">(opcional)</span></label>
+          <div class="multiselect-box" id="pais-selecionados">
+            <span style="color:var(--color-neutral-400); font-size:12px;">Nenhum pai selecionado</span>
+          </div>
+          <div class="multiselect-add" style="margin-top:8px;">
+            <select class="form-select" id="select-pai">
+              <option value="">Adicionar serviço pai...</option>
+              <option value="ETCE">E-TCE (ETCE)</option>
+              <option value="CPRO">Consulta Processual (CPRO)</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="adicionarPai()">Adicionar</button>
+          </div>
+          <div class="form-hint">Um serviço pode ter múltiplos pais na hierarquia.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-incluir')">Cancelar</button>
+        <button class="btn btn-primary">Confirmar Inclusão</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR SERVIÇO -->
+  <div class="modal-overlay" id="modal-editar">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Editar Serviço — E-TCE</span>
+        <button class="modal-close" onclick="closeModal('modal-editar')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">URL do Healthcheck <span class="required">*</span></label>
+          <input type="url" class="form-input" value="https://etce.tce.mg.gov.br/health">
+          <div class="form-hint">O endpoint será validado ao salvar.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Serviços Pai <span style="color:var(--color-neutral-400); font-weight:400;">(opcional)</span></label>
+          <div class="multiselect-box">
+            <span style="color:var(--color-neutral-400); font-size:12px;">Nenhum pai selecionado</span>
+          </div>
+          <div class="multiselect-add" style="margin-top:8px;">
+            <select class="form-select">
+              <option value="">Adicionar serviço pai...</option>
+              <option>Consulta Processual (CPRO)</option>
+              <option>Portal de Serviços (PSRV)</option>
+            </select>
+            <button class="btn btn-secondary btn-sm">Adicionar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+            <label class="toggle">
+              <input type="checkbox" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size:13px; color:var(--color-neutral-700);">Serviço ativo</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-editar')">Cancelar</button>
+        <button class="btn btn-primary">Salvar Alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INATIVAR -->
+  <div class="modal-overlay" id="modal-inativar">
+    <div class="modal" style="width:440px;">
+      <div class="modal-header">
+        <span class="modal-title">Inativar Serviço</span>
+        <button class="modal-close" onclick="closeModal('modal-inativar')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--color-neutral-600); line-height:1.6;">
+          Ao inativar o serviço <strong>E-TCE</strong>, o monitoramento será interrompido e os vínculos hierárquicos serão removidos. O histórico de indisponibilidades será mantido.
+        </p>
+        <div style="background:var(--color-warning-light); border:1px solid #f6d860; border-radius:var(--radius-md); padding:12px 14px; margin-top:14px; font-size:12px; color:var(--color-warning);">
+          ⚠️ Este serviço possui serviços filhos vinculados. Ao inativá-lo, os vínculos hierárquicos serão removidos.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-inativar')">Cancelar</button>
+        <button class="btn btn-danger-ghost">Confirmar Inativação</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REATIVAR -->
+  <div class="modal-overlay" id="modal-reativar">
+    <div class="modal" style="width:440px;">
+      <div class="modal-header">
+        <span class="modal-title">Reativar Serviço</span>
+        <button class="modal-close" onclick="closeModal('modal-reativar')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--color-neutral-600); line-height:1.6; margin-bottom:16px;">
+          Deseja restaurar a hierarquia anterior do serviço <strong>Portal de Serviços</strong>?
+        </p>
+        <div style="background:var(--color-neutral-50); border:1px solid var(--color-neutral-200); border-radius:var(--radius-md); padding:12px 14px; font-size:12px; color:var(--color-neutral-600);">
+          Hierarquia anterior: <strong>E-TCE (ETCE)</strong>, <strong>Consulta Processual (CPRO)</strong>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-reativar')">Ativar sem hierarquia</button>
+        <button class="btn btn-primary">Ativar e restaurar hierarquia</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REMOVER -->
+  <div class="modal-overlay" id="modal-remover">
+    <div class="modal" style="width:440px;">
+      <div class="modal-header">
+        <span class="modal-title">Remover Serviço</span>
+        <button class="modal-close" onclick="closeModal('modal-remover')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--color-neutral-600); line-height:1.6;">
+          Ao remover o serviço <strong>Portal de Serviços</strong>, ele deixará de aparecer na lista de monitoramento e todos os vínculos hierárquicos serão removidos permanentemente. O histórico de indisponibilidades será mantido.
+        </p>
+        <div style="background:var(--color-danger-light); border:1px solid #f8b4b4; border-radius:var(--radius-md); padding:12px 14px; margin-top:14px; font-size:12px; color:var(--color-danger);">
+          ⚠️ Esta ação não pode ser desfeita.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-remover')">Cancelar</button>
+        <button class="btn btn-danger-ghost">Confirmar Remoção</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
+      });
+    });
+
+    const paisSelecionados = [];
+    function adicionarPai() {
+      const select = document.getElementById('select-pai');
+      const val = select.value;
+      const label = select.options[select.selectedIndex].text;
+      if (!val || paisSelecionados.includes(val)) return;
+      paisSelecionados.push(val);
+      const box = document.getElementById('pais-selecionados');
+      box.innerHTML = '';
+      paisSelecionados.forEach(p => {
+        const tag = document.createElement('span');
+        tag.className = 'multiselect-tag';
+        tag.innerHTML = `${p} <button onclick="removerPai('${p}')">×</button>`;
+        box.appendChild(tag);
+      });
+      select.value = '';
+    }
+    function removerPai(val) {
+      const idx = paisSelecionados.indexOf(val);
+      if (idx > -1) paisSelecionados.splice(idx, 1);
+      const box = document.getElementById('pais-selecionados');
+      if (paisSelecionados.length === 0) {
+        box.innerHTML = '<span style="color:var(--color-neutral-400); font-size:12px;">Nenhum pai selecionado</span>';
+        return;
+      }
+      box.innerHTML = '';
+      paisSelecionados.forEach(p => {
+        const tag = document.createElement('span');
+        tag.className = 'multiselect-tag';
+        tag.innerHTML = `${p} <button onclick="removerPai('${p}')">×</button>`;
+        box.appendChild(tag);
+      });
+    }
+  </script>
+</body>
+</html>
