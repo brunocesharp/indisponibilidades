@@ -236,11 +236,179 @@ E o histórico de indisponibilidades é mantido
 
 ---
 
+## Feature: Hierarquia e Propagação de Indisponibilidade
+
+**In order to** garantir que o tempo de indisponibilidade de serviços dependentes seja contabilizado corretamente mesmo quando a falha se originou em outro serviço
+**As** Sistema de Monitoramento
+**I want** acumular o tempo em que ao menos um serviço da cadeia hierárquica estava indisponível, calculando a união dos intervalos de falha sem duplicar períodos sobrepostos
+
+---
+
+### Regras de Negócio
+
+| ID | Regra |
+|----|-------|
+| RN13 | Todos os serviços continuam sendo verificados normalmente via healthcheck, independentemente do estado dos serviços pai |
+| RN14 | O tempo de indisponibilidade de um serviço filho é calculado como a **união** dos intervalos em que ao menos um serviço da cadeia (ele próprio ou qualquer pai) estava indisponível |
+| RN15 | Intervalos sobrepostos não são somados — apenas o período em que ao menos um estava indisponível é contabilizado |
+| RN16 | Se um serviço possui múltiplos pais, basta **um** pai estar indisponível para o tempo desse pai ser incluído na união do filho |
+| RN17 | O limiar para geração do relatório do usuário é de **120 minutos acumulados** no dia, calculado pela união dos intervalos conforme RN14 |
+| RN18 | O relatório do **usuário** informa apenas que o serviço ficou indisponível e o tempo total acumulado — sem detalhar origem da falha |
+| RN19 | O relatório do **administrador** detalha todos os serviços individualmente, incluindo os que ficaram indisponíveis por herança hierárquica |
+
+---
+
+### Cenário 1 — Filho herda indisponibilidade do pai sem falha própria
+
+```gherkin
+Dado que o serviço FILHO está Ativo e saudável
+E o serviço PAI está Ativo e é pai do FILHO
+Quando o PAI fica indisponível entre 11h00 e 13h30 (150 minutos)
+E o FILHO responde com sucesso em todas as verificações nesse período
+Então o FILHO acumula 150 minutos de indisponibilidade no dia
+E o relatório do usuário é gerado para o FILHO ao atingir 120 minutos acumulados
+E o relatório do administrador indica que a indisponibilidade do FILHO foi herdada do PAI
+```
+
+---
+
+### Cenário 2 — Filho e pai ficam indisponíveis em períodos sem sobreposição
+
+```gherkin
+Dado que o serviço FILHO está Ativo
+E o serviço PAI está Ativo e é pai do FILHO
+Quando o FILHO fica indisponível entre 11h45 e 12h00 (15 minutos)
+E o PAI fica indisponível entre 12h00 e 12h15 (15 minutos)
+Então o FILHO acumula 30 minutos de indisponibilidade no dia
+E os dois períodos são contabilizados sem sobreposição
+```
+
+---
+
+### Cenário 3 — Filho e pai ficam indisponíveis em períodos com sobreposição
+
+```gherkin
+Dado que o serviço FILHO está Ativo
+E o serviço PAI está Ativo e é pai do FILHO
+Quando o FILHO fica indisponível entre 11h45 e 12h00 (15 minutos)
+E o PAI fica indisponível entre 11h50 e 12h15 (25 minutos)
+Então o FILHO acumula 30 minutos de indisponibilidade no dia
+E o período de sobreposição entre 11h50 e 12h00 não é contabilizado duas vezes
+```
+
+---
+
+### Cenário 4 — Filho com múltiplos pais, apenas um indisponível
+
+```gherkin
+Dado que o serviço FILHO está Ativo e saudável
+E o serviço PAI-A está Ativo e é pai do FILHO
+E o serviço PAI-B está Ativo e é pai do FILHO
+Quando o PAI-A fica indisponível entre 10h00 e 12h30 (150 minutos)
+E o PAI-B permanece saudável durante todo o período
+E o FILHO responde com sucesso em todas as verificações
+Então o FILHO acumula 150 minutos de indisponibilidade no dia
+E o relatório do usuário é gerado para o FILHO ao atingir 120 minutos acumulados
+```
+
+---
+
+### Cenário 5 — Filho com múltiplos pais, ambos indisponíveis em períodos sobrepostos
+
+```gherkin
+Dado que o serviço FILHO está Ativo e saudável
+E o serviço PAI-A está Ativo e é pai do FILHO
+E o serviço PAI-B está Ativo e é pai do FILHO
+Quando o PAI-A fica indisponível entre 10h00 e 11h00 (60 minutos)
+E o PAI-B fica indisponível entre 10h30 e 11h30 (60 minutos)
+E o FILHO responde com sucesso em todas as verificações
+Então o FILHO acumula 90 minutos de indisponibilidade no dia
+E o período de sobreposição entre 10h30 e 11h00 não é contabilizado duas vezes
+```
+
+---
+
+### Cenário 6 — Filho não atinge o limiar de 120 minutos
+
+```gherkin
+Dado que o serviço FILHO está Ativo
+E o serviço PAI está Ativo e é pai do FILHO
+Quando a união dos intervalos de indisponibilidade do FILHO ao longo do dia totaliza 90 minutos
+Então nenhum relatório do usuário é gerado para o FILHO
+E o FILHO aparece no relatório diário do administrador com 90 minutos acumulados
+```
+
+---
+
+### Cenário 7 — Hierarquia em cadeia (avô → pai → filho)
+
+```gherkin
+Dado que o serviço AVÔ está Ativo
+E o serviço PAI está Ativo e é filho do AVÔ
+E o serviço FILHO está Ativo e é filho do PAI
+Quando o AVÔ fica indisponível entre 09h00 e 11h30 (150 minutos)
+E o PAI responde com sucesso em todas as verificações
+E o FILHO responde com sucesso em todas as verificações
+Então o PAI acumula 150 minutos de indisponibilidade no dia
+E o FILHO acumula 150 minutos de indisponibilidade no dia
+E o relatório do usuário é gerado para o PAI e para o FILHO ao atingirem 120 minutos
+E o relatório do administrador indica que a origem da falha foi o AVÔ
+```
+
+---
+
+### Cenário 8 — Pai retoma antes, filho continua falhando por conta própria
+
+```gherkin
+Dado que o serviço FILHO está Ativo
+E o serviço PAI está Ativo e é pai do FILHO
+Quando o PAI fica indisponível entre 10h00 e 10h40 (40 minutos) e retorna saudável
+E o FILHO continua falhando no healthcheck entre 10h30 e 11h30 (60 minutos)
+Então o FILHO acumula 90 minutos de indisponibilidade no dia
+E o período de sobreposição entre 10h30 e 10h40 não é contabilizado duas vezes
+```
+
+---
+
+### Cenário 9 — Serviço sem hierarquia não herda nenhuma indisponibilidade
+
+```gherkin
+Dado que o serviço A está Ativo sem nenhum serviço pai vinculado
+E o serviço B está Ativo sem vínculo com o serviço A
+Quando o serviço B fica indisponível por qualquer período
+Então o serviço A não acumula nenhum tempo de indisponibilidade herdado do serviço B
+E o serviço A continua sendo monitorado normalmente
+```
+
+---
+
+## Pontos em Aberto
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+## Cobertura — Feature: Hierarquia e Propagação
+
+| Cenário | Tipo |
+|---------|------|
+| 1 — Filho herda do pai sem falha própria | Happy path — herança pura |
+| 2 — Pai e filho indisponíveis sem sobreposição | Happy path — união simples |
+| 3 — Pai e filho indisponíveis com sobreposição | Regra de negócio — sem duplicação |
+| 4 — Múltiplos pais, apenas um indisponível | Happy path — múltiplos pais |
+| 5 — Múltiplos pais com sobreposição entre eles | Regra de negócio — múltiplos pais + sem duplicação |
+| 6 — Filho não atinge limiar de 120 min | Alternativo — abaixo do limiar |
+| 7 — Hierarquia em cadeia (avô → pai → filho) | Happy path — propagação multinível |
+| 8 — Pai retoma, filho continua falhando | Alternativo — falhas em sequência mista |
+| 9 — Serviço sem hierarquia não herda nada | Isolamento — sem vínculo |
+
+---
+
 ## Feature: Monitoramento de Healthcheck
 
-**In order to** registrar com precisão os períodos de indisponibilidade dos sistemas
+**In order to** detectar e contabilizar com precisão os períodos de indisponibilidade de cada serviço ao longo do dia
 **As** Sistema de Monitoramento
-**I want** verificar periodicamente os endpoints de healthcheck, detectar indisponibilidades com confirmação em duas etapas via buffer e persistir os períodos de indisponibilidade no banco de dados Oracle 19c
+**I want** verificar periodicamente o endpoint de healthcheck de cada serviço ativo e registrar o estado retornado, acumulando o tempo de indisponibilidade a partir da primeira verificação do dia
 
 ---
 
@@ -248,884 +416,178 @@ E o histórico de indisponibilidades é mantido
 
 | ID | Regra |
 |----|-------|
-| RN13 | O sistema verifica os endpoints de healthcheck de todos os serviços com status **Ativo** na frequência configurada (padrão: 1 minuto) |
-| RN14 | Serviços com status **Inativo** ou **Removido** não são verificados |
-| RN15 | Uma resposta com status code fora do intervalo 200–204 é tratada como indisponibilidade |
-| RN16 | Erros de conexão (timeout, DNS não resolve, host inacessível) são tratados como indisponibilidade |
-| RN17 | A primeira falha detectada cria um registro no buffer em memória para o endpoint; o período de indisponibilidade ainda **não** é persistido no banco |
-| RN18 | A segunda falha consecutiva confirma a indisponibilidade: o sistema persiste o início do período no banco Oracle 19c com o horário da primeira falha registrada no buffer e atualiza o buffer indicando que o registro já está sendo gravado |
-| RN19 | Falhas consecutivas após a segunda mantêm o período de indisponibilidade aberto no banco; nenhuma ação adicional é necessária |
-| RN20 | Quando o endpoint retorna sucesso (200–204), o sistema fecha o período de indisponibilidade no banco gravando o horário de fim, limpa o buffer e retoma o ciclo normal de verificação |
-| RN21 | O buffer é mantido exclusivamente em memória; em caso de restart do sistema, o buffer é zerado e o fluxo reinicia do zero sem recuperação de estado anterior |
-| RN22 | Apenas os períodos de indisponibilidade (início e fim) são persistidos; verificações individuais de sucesso não são armazenadas |
-| RN23 | Falha ao persistir no banco Oracle 19c gera uma exceção que é enviada ao sistema de log do tribunal |
+| RN20 | Apenas serviços com status **Ativo** são verificados; serviços **Inativos** não recebem verificações até serem reativados |
+| RN21 | A primeira verificação ocorre após o primeiro intervalo configurado (padrão: 1 minuto), nunca imediatamente ao iniciar |
+| RN22 | O serviço é considerado **indisponível** quando o healthcheck retorna: status HTTP fora de 200–204, status `Unhealthy` (0), ou status `Degraded` (1) |
+| RN23 | O serviço é considerado **disponível** apenas quando o healthcheck retorna status HTTP 200–204 **e** status `Healthy` (2) |
+| RN24 | Timeout de resposta é de **1 minuto**; ausência de resposta nesse prazo conta como indisponibilidade |
+| RN25 | Se o sistema de monitoramento ficar fora do ar, o período sem verificação é contabilizado integralmente como indisponibilidade para todos os serviços ativos |
+| RN26 | O acúmulo diário reinicia à meia-noite (00h00); o contador do dia anterior é fechado no momento exato da virada |
+| RN27 | Serviços cadastrados durante o dia só passam a ser monitorados a partir de 00h00 do dia seguinte |
+| RN28 | O intervalo de verificação é configurável por serviço; o padrão é **1 minuto** |
 
 ---
 
-### Cenário 14 — Verificação com sucesso em serviço sem histórico de falha
+### Cenário 1 — Verificação bem-sucedida (Healthy)
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço não possui registro no buffer
-Quando o sistema verifica o endpoint de healthcheck
-E o endpoint retorna status code entre 200 e 204
-Então nenhuma ação é executada
-E o ciclo de verificação continua normalmente
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o endpoint de healthcheck está configurado como "https://pagamentos/health"
+Quando o intervalo de 1 minuto decorre após o início do monitoramento
+E o endpoint retorna HTTP 200 com status Healthy (2)
+Então o sistema registra o serviço como disponível naquele instante
+E nenhum tempo de indisponibilidade é acumulado
+E a próxima verificação é agendada para 1 minuto depois
 ```
 
 ---
 
-### Cenário 15 — Primeira falha detectada (criação no buffer)
+### Cenário 2 — Healthcheck retorna Unhealthy
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço não possui registro no buffer
-Quando o sistema verifica o endpoint de healthcheck
-E o endpoint retorna status code fora do intervalo 200–204
-Então um registro é criado no buffer para o endpoint com o horário da falha
-E nenhum período de indisponibilidade é persistido no banco
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 11h59
+Quando o intervalo decorre e o endpoint retorna HTTP 200 com status Unhealthy (0)
+Então o sistema registra o serviço como indisponível a partir de 12h00
+E inicia a contagem do tempo de indisponibilidade
+E a próxima verificação é agendada para 1 minuto depois
 ```
 
 ---
 
-### Cenário 16 — Primeira falha por erro de conexão (criação no buffer)
+### Cenário 3 — Healthcheck retorna Degraded
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço não possui registro no buffer
-Quando o sistema tenta verificar o endpoint de healthcheck
-E ocorre erro de conexão (timeout, DNS não resolve ou host inacessível)
-Então um registro é criado no buffer para o endpoint com o horário da falha
-E nenhum período de indisponibilidade é persistido no banco
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 14h29
+Quando o intervalo decorre e o endpoint retorna HTTP 200 com status Degraded (1)
+Então o sistema registra o serviço como indisponível a partir de 14h30
+E inicia a contagem do tempo de indisponibilidade
 ```
 
 ---
 
-### Cenário 17 — Segunda falha consecutiva (confirmação e persistência no banco)
+### Cenário 4 — Healthcheck retorna status HTTP fora de 200–204
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço possui registro no buffer indicando a primeira falha
-Quando o sistema verifica o endpoint de healthcheck novamente
-E o endpoint retorna status code fora do intervalo 200–204
-Então o início do período de indisponibilidade é persistido no banco Oracle 19c com o horário da primeira falha registrada no buffer
-E o buffer é atualizado indicando que o período já está sendo gravado no banco
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 09h14
+Quando o intervalo decorre e o endpoint retorna HTTP 503
+Então o sistema registra o serviço como indisponível a partir de 09h15
+E inicia a contagem do tempo de indisponibilidade
 ```
 
 ---
 
-### Cenário 18 — Falhas subsequentes após confirmação
+### Cenário 5 — Timeout na verificação
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço possui registro no buffer indicando que o período já está sendo gravado no banco
-Quando o sistema verifica o endpoint de healthcheck
-E o endpoint retorna status code fora do intervalo 200–204
-Então nenhuma ação adicional é executada
-E o período de indisponibilidade permanece aberto no banco
+Dado que o serviço "API de Pagamentos" está Ativo com intervalo de 1 minuto
+E o serviço estava disponível até 10h04
+Quando o intervalo decorre e o endpoint não responde dentro de 1 minuto
+Então o sistema registra o serviço como indisponível a partir de 10h05
+E inicia a contagem do tempo de indisponibilidade
+E a próxima verificação é agendada normalmente
 ```
 
 ---
 
-### Cenário 19 — Recuperação do serviço após indisponibilidade confirmada
+### Cenário 6 — Serviço retorna a ficar disponível após período de falha
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço possui um período de indisponibilidade aberto no banco
-E o serviço possui registro no buffer indicando que o período está sendo gravado
-Quando o sistema verifica o endpoint de healthcheck
-E o endpoint retorna status code entre 200 e 204
-Então o período de indisponibilidade é fechado no banco com o horário de fim
-E o registro do serviço é removido do buffer
-E o ciclo de verificação retoma normalmente
+Dado que o serviço "API de Pagamentos" está Ativo
+E estava indisponível desde 11h00
+Quando o intervalo decorre e o endpoint retorna HTTP 200 com status Healthy (2)
+Então o sistema encerra o período de indisponibilidade
+E registra o intervalo de falha no acúmulo do dia
+E a contagem de indisponibilidade para de crescer
 ```
 
 ---
 
-### Cenário 20 — Recuperação após primeira falha (sem persistência no banco)
+### Cenário 7 — Sistema de monitoramento fica fora do ar
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço possui registro no buffer apenas com a primeira falha (período ainda não persistido no banco)
-Quando o sistema verifica o endpoint de healthcheck
-E o endpoint retorna status code entre 200 e 204
-Então o registro do serviço é removido do buffer
-E nenhum período de indisponibilidade é persistido no banco
-E o ciclo de verificação retoma normalmente
+Dado que o serviço "API de Pagamentos" está Ativo e disponível às 08h00
+E o sistema de monitoramento fica indisponível entre 08h00 e 08h10 (10 minutos)
+Quando o sistema de monitoramento volta às 08h10
+Então os 10 minutos sem verificação são contabilizados como indisponibilidade para todos os serviços ativos
+E o monitoramento retoma normalmente a partir de 08h10
 ```
 
 ---
 
-### Cenário 21 — Serviço com status Inativo não é verificado
+### Cenário 8 — Virada de dia fecha o acúmulo anterior
 
 ```gherkin
-Dado que existe um serviço com status Inativo no monitoramento
-Quando o ciclo de verificação de healthcheck é executado
-Então o endpoint do serviço não é verificado
+Dado que o serviço "API de Pagamentos" está Ativo
+E estava indisponível desde 23h50 do dia 25/06
+Quando o relógio atinge 00h00 do dia 26/06
+Então o período de 23h50 a 00h00 (10 minutos) é fechado e registrado no acúmulo do dia 25/06
+E um novo acúmulo começa para o dia 26/06 a partir de 00h00
+E a indisponibilidade em curso continua sendo contabilizada no novo dia
 ```
 
 ---
 
-### Cenário 22 — Serviço com status Removido não é verificado
+### Cenário 9 — Serviço cadastrado no meio do dia não é monitorado até o dia seguinte
 
 ```gherkin
-Dado que existe um serviço com status Removido no monitoramento
-Quando o ciclo de verificação de healthcheck é executado
-Então o endpoint do serviço não é verificado
+Dado que um novo serviço "API de Relatórios" é cadastrado às 14h30 do dia 25/06 com status Ativo
+Quando o sistema avalia quais serviços devem ser monitorados
+Então o serviço "API de Relatórios" não é verificado no restante do dia 25/06
+E o monitoramento inicia às 00h01 do dia 26/06 (após o primeiro intervalo a partir da meia-noite)
 ```
 
 ---
 
-### Cenário 23 — Restart do sistema zera o buffer
+### Cenário 10 — Serviço inativo não é verificado
 
 ```gherkin
-Dado que o sistema de monitoramento possui registros no buffer para um ou mais endpoints
-Quando o sistema de monitoramento é reiniciado
-Então o buffer é zerado
-E o fluxo de verificação reinicia do zero para todos os serviços
-E nenhuma tentativa de recuperação do estado anterior do buffer é realizada
+Dado que o serviço "API de Relatórios" está com status Inativo
+Quando o intervalo de verificação decorre
+Então o sistema não realiza nenhuma chamada ao endpoint do serviço
+E nenhum tempo de indisponibilidade é acumulado para o serviço
 ```
 
 ---
 
-### Cenário 24 — Falha ao persistir indisponibilidade no banco
+### Cenário 11 — Serviço reativado volta a ser monitorado
 
 ```gherkin
-Dado que existe um serviço com status Ativo no monitoramento
-E o serviço possui registro no buffer com a primeira falha
-Quando o sistema verifica o endpoint e detecta a segunda falha consecutiva
-E o banco de dados Oracle 19c está indisponível no momento da persistência
-Então uma exceção é gerada
-E a exceção é enviada ao sistema de log do tribunal
-E o período de indisponibilidade não é persistido no banco
+Dado que o serviço "API de Relatórios" estava Inativo desde 09h00
+Quando o administrador altera o status do serviço para Ativo às 11h00
+Então o sistema passa a incluir o serviço nas verificações periódicas
+E a primeira verificação ocorre após o primeiro intervalo a partir das 11h00
+E o acúmulo de indisponibilidade começa a ser contabilizado a partir desse momento
 ```
 
 ---
 
-### Pontos em Aberto — Monitoramento de Healthcheck
+### Cenário 12 — Intervalo de verificação personalizado
 
-> Nenhum ponto em aberto identificado para esta feature.
+```gherkin
+Dado que o serviço "API de Relatórios" está Ativo com intervalo configurado em 5 minutos
+Quando o monitoramento está em execução
+Então o sistema verifica o healthcheck a cada 5 minutos
+E não realiza verificações nos intervalos intermediários
+```
 
 ---
 
-### Cobertura — Monitoramento de Healthcheck
+## Cobertura — Feature: Monitoramento de Healthcheck
 
 | Cenário | Tipo |
 |---------|------|
-| 14 — Verificação com sucesso sem histórico de falha | Happy path |
-| 15 — Primeira falha por resposta inválida | Buffer — primeira etapa |
-| 16 — Primeira falha por erro de conexão | Buffer — primeira etapa (variação) |
-| 17 — Segunda falha consecutiva — persistência no banco | Buffer — confirmação |
-| 18 — Falhas subsequentes após confirmação | Regra de negócio — estado contínuo |
-| 19 — Recuperação após indisponibilidade confirmada | Happy path — recuperação |
-| 20 — Recuperação após primeira falha (sem banco) | Alternativo — recuperação parcial |
-| 21 — Serviço Inativo não verificado | Regra de negócio — ciclo de vida |
-| 22 — Serviço Removido não verificado | Regra de negócio — ciclo de vida |
-| 23 — Restart zera buffer | Exceção — resiliência |
-| 24 — Falha ao persistir no banco | Exceção — dependência externa |
-
----
-
-## Feature: Hierarquia de Serviços
-
-**In order to** representar corretamente as relações entre serviços e enriquecer os relatórios de indisponibilidade com contexto hierárquico
-**As** Sistema de Monitoramento
-**I want** registrar indisponibilidades de forma independente para cada serviço e exibir as relações hierárquicas nos relatórios do Administrador
-
----
-
-### Regras de Negócio
-
-| ID | Regra |
-|----|-------|
-| RN24 | Cada serviço segue o fluxo padrão de monitoramento (buffer + persistência) de forma independente, independentemente de sua posição na hierarquia |
-| RN25 | A hierarquia não interfere no processo de detecção de indisponibilidade — pai e filho possuem seus próprios registros no buffer e no banco |
-| RN26 | Um serviço pode ter múltiplos pais e múltiplos filhos na hierarquia |
-| RN27 | No relatório do Usuário, apenas a indisponibilidade do sistema acessado pelo usuário é exibida, sem informações hierárquicas |
-| RN28 | No relatório do Administrador, todos os serviços com indisponibilidade no dia são exibidos com seus respectivos períodos, acompanhados da indicação de relação hierárquica |
-| RN29 | A relação hierárquica é exibida no relatório do Administrador independentemente de pai e filho terem estado indisponíveis ao mesmo tempo — basta que ambos tenham tido indisponibilidade no mesmo dia |
-| RN30 | Quando um serviço pai volta a funcionar, seu período de indisponibilidade é fechado no banco independentemente do status dos filhos |
-| RN31 | Quando um serviço filho volta a funcionar, seu período de indisponibilidade é fechado no banco independentemente do status do pai |
-
----
-
-### Cenário 25 — Serviço pai indisponível segue fluxo normal do buffer
-
-```gherkin
-Dado que existe um serviço pai com status Ativo no monitoramento
-E o serviço pai não possui registro no buffer
-Quando o endpoint do serviço pai retorna status code fora do intervalo 200–204
-Então um registro é criado no buffer para o serviço pai
-E nenhum período de indisponibilidade é persistido no banco para o serviço pai
-E o monitoramento dos serviços filhos continua de forma independente
-```
-
----
-
-### Cenário 26 — Serviço filho indisponível segue fluxo normal do buffer
-
-```gherkin
-Dado que existe um serviço filho com status Ativo no monitoramento
-E o serviço filho não possui registro no buffer
-Quando o endpoint do serviço filho retorna status code fora do intervalo 200–204
-Então um registro é criado no buffer para o serviço filho
-E nenhum período de indisponibilidade é persistido no banco para o serviço filho
-E o monitoramento do serviço pai continua de forma independente
-```
-
----
-
-### Cenário 27 — Pai e filho indisponíveis simultaneamente — registros independentes no banco
-
-```gherkin
-Dado que existe um serviço pai e um serviço filho com status Ativo no monitoramento
-E ambos possuem registro no buffer indicando a primeira falha
-Quando ambos os endpoints retornam status code fora do intervalo 200–204 na verificação seguinte
-Então o período de indisponibilidade do serviço pai é persistido no banco de forma independente
-E o período de indisponibilidade do serviço filho é persistido no banco de forma independente
-E cada serviço possui seu próprio registro de início de indisponibilidade
-```
-
----
-
-### Cenário 28 — Pai volta antes do filho
-
-```gherkin
-Dado que o serviço pai e o serviço filho possuem períodos de indisponibilidade abertos no banco
-Quando o endpoint do serviço pai retorna status code entre 200 e 204
-E o endpoint do serviço filho ainda retorna status code fora do intervalo 200–204
-Então o período de indisponibilidade do serviço pai é fechado no banco com o horário de fim
-E o registro do serviço pai é removido do buffer
-E o período de indisponibilidade do serviço filho permanece aberto no banco
-```
-
----
-
-### Cenário 29 — Filho volta antes do pai
-
-```gherkin
-Dado que o serviço pai e o serviço filho possuem períodos de indisponibilidade abertos no banco
-Quando o endpoint do serviço filho retorna status code entre 200 e 204
-E o endpoint do serviço pai ainda retorna status code fora do intervalo 200–204
-Então o período de indisponibilidade do serviço filho é fechado no banco com o horário de fim
-E o registro do serviço filho é removido do buffer
-E o período de indisponibilidade do serviço pai permanece aberto no banco
-```
-
----
-
-### Cenário 30 — Relatório do Usuário exibe apenas o sistema acessado, sem hierarquia
-
-```gherkin
-Dado que o serviço A (pai) e o serviço B (filho) tiveram indisponibilidade no dia
-E o usuário acessa apenas o serviço B
-Quando o usuário consulta o relatório de indisponibilidade do dia
-Então o relatório exibe apenas o período de indisponibilidade do serviço B
-E nenhuma informação sobre o serviço A ou sobre a relação hierárquica é exibida
-```
-
----
-
-### Cenário 31 — Relatório do Administrador exibe todos os serviços com relação hierárquica
-
-```gherkin
-Dado que o serviço A (pai) e o serviço B (filho) tiveram indisponibilidade no mesmo dia
-E ambos possuem períodos de indisponibilidade registrados no banco para o dia
-Quando o Administrador consulta o relatório de indisponibilidade do dia
-Então o relatório exibe o período de indisponibilidade do serviço A
-E o relatório exibe o período de indisponibilidade do serviço B
-E a relação hierárquica entre serviço A (pai) e serviço B (filho) é indicada no relatório
-```
-
----
-
-### Cenário 32 — Relatório do Administrador exibe hierarquia mesmo com indisponibilidades em horários distintos
-
-```gherkin
-Dado que o serviço A (pai) ficou indisponível das 08h às 09h
-E o serviço B (filho) ficou indisponível das 10h às 11h no mesmo dia
-E ambos os períodos estão registrados no banco
-Quando o Administrador consulta o relatório de indisponibilidade do dia
-Então o relatório exibe o período de indisponibilidade do serviço A com seus horários
-E o relatório exibe o período de indisponibilidade do serviço B com seus horários
-E a relação hierárquica entre serviço A (pai) e serviço B (filho) é indicada no relatório
-```
-
----
-
-### Pontos em Aberto — Hierarquia de Serviços
-
-> Nenhum ponto em aberto identificado para esta feature.
-
----
-
-### Cobertura — Hierarquia de Serviços
-
-| Cenário | Tipo |
-|---------|------|
-| 25 — Pai indisponível segue fluxo do buffer | Regra de negócio — independência |
-| 26 — Filho indisponível segue fluxo do buffer | Regra de negócio — independência |
-| 27 — Pai e filho indisponíveis simultaneamente | Happy path — registros independentes |
-| 28 — Pai volta antes do filho | Alternativo — recuperação parcial |
-| 29 — Filho volta antes do pai | Alternativo — recuperação parcial |
-| 30 — Relatório do Usuário sem hierarquia | Regra de negócio — relatório usuário |
-| 31 — Relatório do Administrador com hierarquia simultânea | Happy path — relatório admin |
-| 32 — Relatório do Administrador com hierarquia em horários distintos | Alternativo — relatório admin |
-
----
-
-## Feature: Consulta de Relatórios
-
-**In order to** acessar informações de indisponibilidade de forma estruturada e auditável
-**As** Usuário ou Administrador de Sistemas
-**I want** consultar relatórios de indisponibilidade por data, com visibilidade adequada ao meu perfil
-
----
-
-### Regras de Negócio
-
-| ID | Regra |
-|----|-------|
-| RN32 | Relatórios de indisponibilidade são gerados com referência d-1 — apenas após o encerramento do dia o relatório é finalizado e liberado para consulta |
-| RN33 | O tipo de relatório exibido é determinado pelo perfil do usuário identificado via claim `listaGruposSistema` do token SSO |
-| RN34 | Usuários sem a claim `PRT_SRV_ADMINISTRADORES` visualizam o relatório de usuário — sistemas com indisponibilidade no dia consultado |
-| RN35 | Usuários com a claim `PRT_SRV_ADMINISTRADORES` visualizam o relatório de administrador — todos os sistemas com indisponibilidade no dia, com relação hierárquica indicada |
-| RN36 | Quando não há indisponibilidades registradas para a data consultada, o sistema exibe mensagem informando ausência de indisponibilidades — para ambos os perfis |
-| RN37 | O Administrador pode gerar um relatório parcial do dia atual sob demanda via botão "Gerar Parcial" — o relatório parcial indica que está em andamento e reflete as indisponibilidades até o momento da geração |
-| RN38 | O usuário não autenticado não tem acesso à página de relatórios — é redirecionado para o login do Portal de Serviços |
-| RN39 | A consulta por data não possui limite de período histórico — qualquer data pode ser consultada |
-
----
-
-### Cenário 33 — Usuário consulta data com relatório disponível
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-E não possui a claim PRT_SRV_ADMINISTRADORES no token
-E existem sistemas com indisponibilidade registrada na data consultada (d-1 ou anterior)
-Quando o usuário busca por uma data específica
-Então o sistema exibe o relatório com todos os sistemas que tiveram indisponibilidade naquele dia
-E os períodos de indisponibilidade de cada sistema são exibidos
-E nenhuma informação hierárquica é exibida
-```
-
----
-
-### Cenário 34 — Usuário consulta data sem indisponibilidades
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-E não possui a claim PRT_SRV_ADMINISTRADORES no token
-E não existem sistemas com indisponibilidade registrada na data consultada
-Quando o usuário busca por uma data específica
-Então o sistema exibe mensagem informando que não houve indisponibilidades naquele dia
-```
-
----
-
-### Cenário 35 — Usuário tenta consultar data futura ou data do dia atual
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-E não possui a claim PRT_SRV_ADMINISTRADORES no token
-Quando o usuário busca por uma data futura ou pela data do dia atual
-Então o sistema exibe mensagem informando que não há relatório disponível para a data selecionada
-```
-
----
-
-### Cenário 36 — Administrador consulta data com relatório disponível
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviço Administrativo
-E possui a claim PRT_SRV_ADMINISTRADORES no token
-E existem sistemas com indisponibilidade registrada na data consultada (d-1 ou anterior)
-Quando o Administrador busca por uma data específica
-Então o sistema exibe o relatório com todos os sistemas que tiveram indisponibilidade naquele dia
-E os períodos de indisponibilidade de cada sistema são exibidos com seus respectivos horários
-E a relação hierárquica entre os sistemas é indicada no relatório
-```
-
----
-
-### Cenário 37 — Administrador consulta data sem indisponibilidades
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviço Administrativo
-E possui a claim PRT_SRV_ADMINISTRADORES no token
-E não existem sistemas com indisponibilidade registrada na data consultada
-Quando o Administrador busca por uma data específica
-Então o sistema exibe mensagem informando que não houve indisponibilidades naquele dia
-```
-
----
-
-### Cenário 38 — Administrador gera relatório parcial do dia atual
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviço Administrativo
-E possui a claim PRT_SRV_ADMINISTRADORES no token
-Quando o Administrador aciona o botão "Gerar Parcial"
-Então o sistema gera um relatório com as indisponibilidades registradas até o momento atual
-E o relatório exibe uma indicação de que se trata de um relatório parcial em andamento
-E os períodos de indisponibilidade ainda abertos são exibidos com horário de início mas sem horário de fim
-E a relação hierárquica entre os sistemas é indicada no relatório
-```
-
----
-
-### Cenário 39 — Usuário não autenticado tenta acessar a página de relatórios
-
-```gherkin
-Dado que o usuário não está autenticado no Portal de Serviços
-Quando o usuário tenta acessar a página de relatórios de indisponibilidade
-Então o sistema redireciona o usuário para a página de login do Portal de Serviços
-E o acesso à página de relatórios não é concedido
-```
-
----
-
-### Cenário 40 — Token sem claim de administrador exibe relatório de usuário
-
-```gherkin
-Dado que o usuário está autenticado
-E o token não possui a claim PRT_SRV_ADMINISTRADORES
-Quando o usuário acessa a página de relatórios
-Então o sistema exibe a visão de relatório de usuário
-E nenhuma funcionalidade exclusiva do Administrador é exibida (botão "Gerar Parcial", hierarquia)
-```
-
----
-
-### Cenário 41 — Token com claim de administrador exibe relatório de administrador
-
-```gherkin
-Dado que o usuário está autenticado
-E o token possui a claim listaGruposSistema com valor PRT_SRV_ADMINISTRADORES
-Quando o usuário acessa a página de relatórios
-Então o sistema exibe a visão de relatório de administrador
-E o botão "Gerar Parcial" está disponível
-E a relação hierárquica é exibida nos relatórios
-```
-
----
-
-### Pontos em Aberto — Consulta de Relatórios
-
-> Nenhum ponto em aberto identificado para esta feature.
-
----
-
-### Cobertura — Consulta de Relatórios
-
-| Cenário | Tipo |
-|---------|------|
-| 33 — Usuário consulta data com relatório | Happy path — usuário |
-| 34 — Usuário consulta data sem indisponibilidades | Alternativo — sem dados |
-| 35 — Usuário consulta data futura ou atual | Exceção — data inválida |
-| 36 — Administrador consulta data com relatório | Happy path — administrador |
-| 37 — Administrador consulta data sem indisponibilidades | Alternativo — sem dados |
-| 38 — Administrador gera relatório parcial | Happy path — parcial |
-| 39 — Usuário não autenticado | Exceção — segurança |
-| 40 — Token sem claim admin exibe visão de usuário | Regra de negócio — perfil |
-| 41 — Token com claim admin exibe visão de administrador | Regra de negócio — perfil |
-
----
-
-## Feature: Relatório por Limiar
-
-**In order to** declarar formalmente as indisponibilidades técnicas dos sistemas para fins de petição processual
-**As** Sistema de Monitoramento
-**I want** gerar ao final de cada dia um relatório assinado e autenticável com todos os sistemas que acumularam indisponibilidade total igual ou superior ao limiar configurado
-
----
-
-### Regras de Negócio
-
-| ID | Regra |
-|----|-------|
-| RN40 | O relatório por limiar é gerado automaticamente ao final do dia (meia-noite), junto com o relatório diário do Administrador |
-| RN41 | O limiar de indisponibilidade é configurável via arquivo de configuração do projeto (padrão: 120 minutos) |
-| RN42 | Um sistema entra no relatório por limiar se a **soma total** de indisponibilidade do dia for **maior ou igual** ao limiar configurado, independentemente de os períodos serem contínuos ou não |
-| RN43 | O relatório exibe apenas os sistemas que atingiram ou ultrapassaram o limiar — sistemas abaixo do limiar não aparecem |
-| RN44 | Para cada sistema no relatório, são exibidos todos os períodos de indisponibilidade do dia (hora de início, hora de término, tempo do período) e o total acumulado do dia |
-| RN45 | O relatório é disponibilizado apenas na página de consulta do Portal de Serviços — não é enviado por e-mail |
-| RN46 | O relatório contém: cabeçalho com logo e nome do tribunal, título "Indisponibilidade Técnica dos Sistemas", data de referência, tabela de períodos por sistema, assinatura do Diretor DTI (nome + cargo), QR Code com URL de autenticação, código verificador e código do usuário |
-| RN47 | O código verificador é gerado pelo sistema de monitoramento, único por relatório diário |
-| RN48 | O código do usuário é gerado e gerenciado pelo sistema de monitoramento, único por usuário, e incluído no relatório de acordo com o usuário que o acessa |
-| RN49 | Se nenhum sistema atingir o limiar no dia, nenhum relatório por limiar é gerado — a consulta da data exibe mensagem informando ausência de indisponibilidades |
-| RN50 | Falha na geração do relatório gera exceção enviada ao sistema de log do tribunal |
-
----
-
-### Cenário 42 — Sistema acumula indisponibilidade igual ao limiar — entra no relatório
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E o sistema A acumulou exatamente 120 minutos de indisponibilidade no dia
-E o limiar configurado é de 120 minutos
-Quando o relatório por limiar é gerado à meia-noite
-Então o sistema A é incluído no relatório por limiar
-E todos os períodos de indisponibilidade do sistema A são exibidos com hora de início, hora de término e tempo do período
-E o total acumulado do dia é exibido para o sistema A
-```
-
----
-
-### Cenário 43 — Sistema acumula indisponibilidade superior ao limiar em períodos não contínuos
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E o sistema A teve dois períodos de indisponibilidade no dia: 60 minutos e 75 minutos
-E a soma total é 135 minutos, superior ao limiar de 120 minutos
-Quando o relatório por limiar é gerado à meia-noite
-Então o sistema A é incluído no relatório por limiar
-E os dois períodos de indisponibilidade são exibidos individualmente
-E o total acumulado do dia exibe 135 minutos
-```
-
----
-
-### Cenário 44 — Sistema acumula indisponibilidade abaixo do limiar — não entra no relatório
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E o sistema A acumulou 90 minutos de indisponibilidade no dia
-E o limiar configurado é de 120 minutos
-Quando o relatório por limiar é gerado à meia-noite
-Então o sistema A não é incluído no relatório por limiar
-```
-
----
-
-### Cenário 45 — Nenhum sistema atinge o limiar — relatório não é gerado
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E nenhum sistema acumulou indisponibilidade igual ou superior ao limiar no dia
-Quando o processamento do fechamento do dia é executado
-Então nenhum relatório por limiar é gerado para o dia
-E a consulta da data exibe mensagem informando que não houve indisponibilidades no dia
-```
-
----
-
-### Cenário 46 — Relatório gerado contém estrutura completa com autenticação
-
-```gherkin
-Dado que um ou mais sistemas atingiram o limiar de indisponibilidade no dia
-Quando o relatório por limiar é gerado à meia-noite
-Então o relatório contém cabeçalho com logo e nome do tribunal
-E o título "Indisponibilidade Técnica dos Sistemas"
-E a data de referência do dia
-E a tabela de períodos de indisponibilidade por sistema com hora de início, hora de término e tempo do período
-E o total de indisponibilidade do dia por sistema
-E a assinatura do Diretor DTI com nome e cargo
-E o QR Code com URL de autenticação, código verificador único do relatório e código do usuário correspondente ao usuário que acessa o relatório
-```
-
----
-
-### Cenário 47 — Código verificador único por relatório diário
-
-```gherkin
-Dado que o sistema está gerando o relatório por limiar do dia
-Quando o relatório é gerado
-Então o sistema gera um código verificador único para este relatório
-E o código verificador é incluído no QR Code de autenticação
-E o mesmo código verificador é associado ao relatório para validação futura
-```
-
----
-
-### Cenário 48 — Código do usuário incluído conforme usuário que acessa o relatório
-
-```gherkin
-Dado que o relatório por limiar está disponível para consulta
-E o usuário autenticado possui um código de usuário gerado e gerenciado pelo sistema de monitoramento
-Quando o usuário acessa o relatório
-Então o código do usuário correspondente é incluído no QR Code de autenticação do relatório
-E o relatório exibido contém o código do usuário do usuário autenticado
-```
-
----
-
-### Cenário 49 — Falha na geração do relatório por limiar
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E um ou mais sistemas atingiram o limiar de indisponibilidade
-Quando ocorre uma falha durante a geração do relatório por limiar
-Então uma exceção é gerada
-E a exceção é enviada ao sistema de log do tribunal
-E o relatório não é disponibilizado para consulta
-```
-
----
-
-### Pontos em Aberto — Relatório por Limiar
-
-> Nenhum ponto em aberto identificado para esta feature.
-
----
-
-### Cobertura — Relatório por Limiar
-
-| Cenário | Tipo |
-|---------|------|
-| 42 — Sistema com indisponibilidade igual ao limiar | Happy path — limiar exato |
-| 43 — Sistema com indisponibilidade acima do limiar em períodos não contínuos | Happy path — soma do dia |
-| 44 — Sistema abaixo do limiar não entra no relatório | Regra de negócio — exclusão |
-| 45 — Nenhum sistema atinge o limiar | Alternativo — sem relatório |
-| 46 — Estrutura completa do relatório | Regra de negócio — formato |
-| 47 — Código verificador único por relatório | Regra de negócio — autenticação |
-| 48 — Código do usuário por usuário autenticado | Regra de negócio — autenticação |
-| 49 — Falha na geração do relatório | Exceção — resiliência |
-
----
-
-## Feature: Autenticação de Relatório
-
-**In order to** verificar a autenticidade e legitimidade de um relatório de indisponibilidade emitido pelo TCE
-**As** Usuário autenticado no Portal de Serviços
-**I want** informar o código verificador e o código do usuário para validar e visualizar o relatório original
-
----
-
-### Regras de Negócio
-
-| ID | Regra |
-|----|-------|
-| RN51 | A funcionalidade de autenticação de relatório está disponível na página de relatórios de indisponibilidade do Portal de Serviços |
-| RN52 | O acesso à autenticação requer o mesmo nível de autenticação da página de relatórios — usuário autenticado via Portal de Serviços (gov.br) ou Portal Administrativo (AD) |
-| RN53 | A autenticação é realizada informando o código verificador (único por relatório) e o código do usuário (único por usuário) |
-| RN54 | Quando ambos os códigos são válidos e correspondem a um relatório existente, o relatório original é exibido |
-| RN55 | Quando qualquer um dos códigos é inválido ou não existe no sistema, o sistema exibe mensagem informando que o relatório não foi encontrado |
-
----
-
-### Cenário 50 — Autenticação com códigos válidos exibe o relatório
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-E possui um código verificador e um código do usuário válidos correspondentes a um relatório existente
-Quando o usuário aciona o botão de autenticação na página de relatórios
-E informa o código verificador e o código do usuário
-Então o sistema localiza o relatório correspondente
-E exibe o relatório de indisponibilidade original
-```
-
----
-
-### Cenário 51 — Autenticação com código verificador inválido
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-Quando o usuário aciona o botão de autenticação na página de relatórios
-E informa um código verificador que não existe no sistema
-Então o sistema exibe mensagem informando que o relatório não foi encontrado
-```
-
----
-
-### Cenário 52 — Autenticação com código do usuário inválido
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-E informa um código verificador válido
-Quando o usuário informa um código do usuário que não corresponde ao relatório
-Então o sistema exibe mensagem informando que o relatório não foi encontrado
-```
-
----
-
-### Cenário 53 — Usuário não autenticado tenta acessar autenticação de relatório
-
-```gherkin
-Dado que o usuário não está autenticado no Portal de Serviços
-Quando o usuário tenta acessar a funcionalidade de autenticação de relatório
-Então o sistema redireciona o usuário para a página de login do Portal de Serviços
-E o acesso à autenticação não é concedido
-```
-
----
-
-### Cenário 54 — Relatório autenticado é exibido no formato original
-
-```gherkin
-Dado que o usuário está autenticado no Portal de Serviços
-E informou códigos verificador e do usuário válidos
-Quando o sistema localiza o relatório correspondente
-Então o relatório é exibido com a mesma estrutura do relatório original
-E contém cabeçalho com logo e nome do tribunal
-E a tabela de períodos de indisponibilidade por sistema
-E a assinatura do Diretor DTI
-E o QR Code com os códigos de autenticação
-```
-
----
-
-### Pontos em Aberto — Autenticação de Relatório
-
-> Nenhum ponto em aberto identificado para esta feature.
-
----
-
-### Cobertura — Autenticação de Relatório
-
-| Cenário | Tipo |
-|---------|------|
-| 50 — Códigos válidos exibem o relatório | Happy path |
-| 51 — Código verificador inválido | Exceção — código não encontrado |
-| 52 — Código do usuário inválido | Exceção — código não corresponde |
-| 53 — Usuário não autenticado | Exceção — segurança |
-| 54 — Relatório exibido no formato original | Regra de negócio — formato |
-
----
-
-## Feature: Relatório Diário do Administrador
-
-**In order to** acompanhar todas as indisponibilidades ocorridas no dia e ter visibilidade completa da saúde dos sistemas
-**As** Sistema de Monitoramento
-**I want** gerar automaticamente ao final de cada dia um relatório consolidado com todas as indisponibilidades registradas, disponível para consulta pelo Administrador no Portal de Serviço Administrativo
-
----
-
-### Regras de Negócio
-
-| ID | Regra |
-|----|-------|
-| RN56 | O relatório diário do Administrador é gerado automaticamente à meia-noite, junto com o Relatório por Limiar |
-| RN57 | O relatório inclui **todos** os sistemas que tiveram indisponibilidade no dia, independentemente de terem atingido ou não o limiar configurado |
-| RN58 | Se nenhum sistema teve indisponibilidade no dia, o relatório diário do Administrador não é gerado |
-| RN59 | O relatório exibe a relação hierárquica entre os sistemas que tiveram indisponibilidade no dia |
-| RN60 | O relatório segue o mesmo formato do Relatório por Limiar (cabeçalho, tabela de períodos por sistema, total do dia, assinatura do Diretor DTI), porém **sem** código verificador e **sem** código do usuário |
-| RN61 | O relatório diário é disponibilizado para consulta na página de relatórios do Portal de Serviço Administrativo com referência d-1 |
-| RN62 | O Administrador pode gerar um relatório parcial do dia atual sob demanda via botão "Gerar Parcial" — o relatório parcial indica que está em andamento e não possui código verificador |
-| RN63 | Falha na geração do relatório diário gera exceção enviada ao sistema de log do tribunal |
-
----
-
-### Cenário 55 — Relatório diário gerado com todos os sistemas com indisponibilidade
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E um ou mais sistemas tiveram indisponibilidade registrada no dia
-Quando o relatório diário do Administrador é gerado à meia-noite
-Então o relatório inclui todos os sistemas que tiveram indisponibilidade no dia
-E para cada sistema são exibidos todos os períodos com hora de início, hora de término e tempo do período
-E o total acumulado do dia é exibido por sistema
-E a relação hierárquica entre os sistemas é indicada no relatório
-```
-
----
-
-### Cenário 56 — Relatório diário inclui sistemas abaixo do limiar
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E o sistema A acumulou 90 minutos de indisponibilidade (abaixo do limiar de 120 minutos)
-Quando o relatório diário do Administrador é gerado à meia-noite
-Então o sistema A é incluído no relatório diário do Administrador
-E seus períodos de indisponibilidade são exibidos normalmente
-```
-
----
-
-### Cenário 57 — Relatório diário não é gerado quando não há indisponibilidades
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E nenhum sistema teve indisponibilidade registrada no dia
-Quando o processamento do fechamento do dia é executado
-Então o relatório diário do Administrador não é gerado
-E a consulta da data pelo Administrador exibe mensagem informando que não houve indisponibilidades no dia
-```
-
----
-
-### Cenário 58 — Relatório diário exibe relação hierárquica entre sistemas
-
-```gherkin
-Dado que o sistema A (pai) e o sistema B (filho) tiveram indisponibilidade no dia
-Quando o relatório diário do Administrador é gerado à meia-noite
-Então ambos os sistemas são exibidos no relatório com seus respectivos períodos
-E a relação hierárquica entre sistema A (pai) e sistema B (filho) é indicada no relatório
-```
-
----
-
-### Cenário 59 — Formato do relatório diário sem código verificador e sem código do usuário
-
-```gherkin
-Dado que um ou mais sistemas tiveram indisponibilidade no dia
-Quando o relatório diário do Administrador é gerado à meia-noite
-Então o relatório contém cabeçalho com logo e nome do tribunal
-E o título "Indisponibilidade Técnica dos Sistemas"
-E a data de referência do dia
-E a tabela de períodos de indisponibilidade por sistema
-E o total de indisponibilidade do dia por sistema
-E a assinatura do Diretor DTI com nome e cargo
-E o relatório não contém código verificador
-E o relatório não contém código do usuário
-```
-
----
-
-### Cenário 60 — Administrador consulta relatório diário disponível (d-1)
-
-```gherkin
-Dado que o Administrador está autenticado no Portal de Serviço Administrativo
-E existe um relatório diário gerado para a data consultada (d-1 ou anterior)
-Quando o Administrador busca por uma data específica
-Então o relatório diário é exibido com todos os sistemas que tiveram indisponibilidade naquele dia
-E a relação hierárquica entre os sistemas é indicada
-```
-
----
-
-### Cenário 61 — Administrador gera relatório parcial do dia atual
-
-```gherkin
-Dado que o Administrador está autenticado no Portal de Serviço Administrativo
-Quando o Administrador aciona o botão "Gerar Parcial"
-Então o sistema gera um relatório com todas as indisponibilidades registradas até o momento atual
-E o relatório exibe indicação de que se trata de um relatório parcial em andamento
-E os períodos de indisponibilidade ainda abertos são exibidos com horário de início mas sem horário de fim
-E a relação hierárquica entre os sistemas é indicada
-E o relatório não contém código verificador nem código do usuário
-```
-
----
-
-### Cenário 62 — Falha na geração do relatório diário
-
-```gherkin
-Dado que o sistema de monitoramento está processando o fechamento do dia
-E um ou mais sistemas tiveram indisponibilidade no dia
-Quando ocorre uma falha durante a geração do relatório diário do Administrador
-Então uma exceção é gerada
-E a exceção é enviada ao sistema de log do tribunal
-E o relatório não é disponibilizado para consulta
-```
-
----
-
-### Pontos em Aberto — Relatório Diário do Administrador
-
-> Nenhum ponto em aberto identificado para esta feature.
-
----
-
-### Cobertura — Relatório Diário do Administrador
-
-| Cenário | Tipo |
-|---------|------|
-| 55 — Relatório gerado com todos os sistemas com indisponibilidade | Happy path |
-| 56 — Sistemas abaixo do limiar incluídos no relatório | Regra de negócio — sem filtro de limiar |
-| 57 — Nenhuma indisponibilidade — relatório não gerado | Alternativo — sem dados |
-| 58 — Relação hierárquica exibida | Regra de negócio — hierarquia |
-| 59 — Formato sem código verificador e sem código do usuário | Regra de negócio — formato |
-| 60 — Administrador consulta relatório d-1 | Happy path — consulta |
-| 61 — Administrador gera relatório parcial | Happy path — parcial |
-| 62 — Falha na geração | Exceção — resiliência |
+| 1 — Verificação bem-sucedida | Happy path |
+| 2 — Retorna Unhealthy | Indisponibilidade por status |
+| 3 — Retorna Degraded | Indisponibilidade por status |
+| 4 — Retorna HTTP fora de 200–204 | Indisponibilidade por HTTP |
+| 5 — Timeout na verificação | Indisponibilidade por ausência de resposta |
+| 6 — Serviço retorna a ficar disponível | Encerramento de período de falha |
+| 7 — Sistema de monitoramento fora do ar | Exceção — downtime do próprio sistema |
+| 8 — Virada de dia | Regra de negócio — fechamento do acúmulo |
+| 9 — Serviço cadastrado no meio do dia | Regra de negócio — início de monitoramento |
+| 10 — Serviço inativo não é verificado | Regra de negócio — status Inativo |
+| 11 — Serviço reativado volta a ser monitorado | Alternativo — reativação |
+| 12 — Intervalo personalizado | Regra de negócio — configuração de intervalo |
