@@ -39,7 +39,7 @@
 | **Papel** | Regulador externo que exige o sistema via minuta |
 | **Expectativa** | Sistema em conformidade com a minuta; relatórios autênticos e auditáveis |
 | **Possível preocupação** | Formato dos relatórios não atender aos requisitos formais |
-| **Estratégia** | Validar formato do relatório (assinatura + QR Code) antes do desenvolvimento — hipóteses U4 e N1 ainda pendentes |
+| **Estratégia** | Validar formato do relatório (QR Code) antes do desenvolvimento — hipóteses U4 e N1 ainda pendentes |
 
 ---
 
@@ -147,7 +147,7 @@ Diretor DTI ───────────────► Patrocina e aprova 
 
 | Stakeholder | Risco | Mitigação |
 |-------------|-------|-----------|
-| Tribunal | Não aprovar o formato do relatório (assinatura + QR Code) | Validar formato antes do desenvolvimento (hipóteses U4 e N1 pendentes) |
+| Tribunal | Não aprovar o formato do relatório (QR Code) | Validar formato antes do desenvolvimento (hipóteses U4 e N1 pendentes) |
 | Time do Portal de Serviços | Atraso no Portal impacta entrega deste sistema | Manter comunicação frequente; monitorar cronograma |
 | Time de Segurança e Infra | Demora na liberação de endpoints internos | Envolver cedo; documentar todas as necessidades de acesso |
 | Times de Dev (.NET e Java) | Não priorizar a implementação do healthcheck | Definir prazo formal com apoio da Equipe de Arquitetura e Diretor DTI |

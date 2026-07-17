@@ -191,9 +191,6 @@
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             Consultar
           </button>
-          <button class="btn btn-ghost" onclick="openModal('modal-autenticar')">
-            🔐 Autenticar relatório
-          </button>
         </div>
       </div>
 
@@ -211,7 +208,7 @@
         <div class="relatorio-header">
           <div class="relatorio-header-info">
             <div class="relatorio-header-title">Sistemas com indisponibilidade em <strong>23 de janeiro de 2026</strong></div>
-            <div class="relatorio-header-meta">🔒 Relatório assinado digitalmente · Código verificador: <strong>0000001</strong></div>
+            <div class="relatorio-header-meta">🔒 Código verificador: <strong>0000001</strong></div>
           </div>
           <a href="relatorio-pdf/relatorio_limiar.pdf" download class="btn btn-success" style="text-decoration:none;">
             ⬇ Baixar PDF
@@ -299,33 +296,6 @@
       </div>
 
     </main>
-  </div>
-
-  <!-- MODAL: AUTENTICAR RELATÓRIO -->
-  <div class="modal-overlay" id="modal-autenticar">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">🔐 Autenticar Relatório</span>
-        <button class="modal-close" onclick="closeModal('modal-autenticar')">×</button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-desc">Informe o código verificador e o código do usuário impressos no relatório para confirmar sua autenticidade e visualizá-lo.</p>
-        <div class="code-fields">
-          <div class="form-group-modal">
-            <label class="form-label">Código Verificador</label>
-            <input type="text" class="form-input" placeholder="Ex: 0000001">
-          </div>
-          <div class="form-group-modal">
-            <label class="form-label">Código do Usuário</label>
-            <input type="text" class="form-input" placeholder="Ex: 000000000">
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-autenticar')">Cancelar</button>
-        <button class="btn btn-primary">Validar e Visualizar Relatório</button>
-      </div>
-    </div>
   </div>
 
   <script>

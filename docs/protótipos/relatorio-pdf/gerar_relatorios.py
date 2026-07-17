@@ -201,10 +201,6 @@ def construir_documento(caminho_saida, sistemas, incluir_autenticacao, parcial=F
             story.append(Paragraph(f"Hierarquia (pai): {sistema['hierarquia']}", style_hierarquia))
         story.append(tabela_periodos(sistema["periodos"], sistema["total"]))
 
-    story.append(Spacer(1, 28))
-    story.append(Paragraph(DIRETOR_NOME, style_assinatura_nome))
-    story.append(Paragraph(DIRETOR_CARGO, style_assinatura_cargo))
-
     story.append(Spacer(1, 22))
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#e5e7eb")))
     story.append(Spacer(1, 12))

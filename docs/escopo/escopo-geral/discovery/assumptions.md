@@ -29,7 +29,7 @@ Classificação por dois eixos:
 | U1 | Todos os usuários têm acesso ao Portal de Serviços | Alto — o canal de entrega dos relatórios depende do Portal | ✅ **Validada** | ✅ VALIDADA | **Cidadãos:** qualquer pessoa com conta gov.br. **Administradores:** acesso via Portal de Serviço Administrativo com login pelo AD (Active Directory) do tribunal |
 | U2 | Os Administradores aceitarão receber notificações por e-mail quando ocorrer indisponibilidade | Médio — se não aceitarem, o canal de alerta perde efetividade | ✅ **Validada** | ✅ VALIDADA | Todos os Administradores possuem conta AD da rede interna do tribunal e estão habilitados a receber e-mails dos sistemas do tribunal |
 | U3 | Os Usuários vão consultar os relatórios proativamente por data, sem necessidade de notificação ativa | Médio — se precisarem de notificação, o modelo atual é insuficiente | Média — inferido da descrição do sistema | 👀 Monitorar | Observar uso após lançamento |
-| U4 | Os relatórios com assinatura digital e QR Code de validação são suficientes para atender a exigência do Tribunal | Alto — se o Tribunal exigir outro formato, os relatórios precisarão ser reformulados | Baixa — não confirmado formalmente com o Tribunal | ⚠️ VALIDAR PRIMEIRO | Validar o formato do relatório com o Tribunal antes do desenvolvimento |
+| U4 | Os relatórios com QR Code de validação são suficientes para atender a exigência do Tribunal | Alto — se o Tribunal exigir outro formato, os relatórios precisarão ser reformulados | Baixa — não confirmado formalmente com o Tribunal | ⚠️ VALIDAR PRIMEIRO | Validar o formato do relatório com o Tribunal antes do desenvolvimento |
 
 ---
 
@@ -62,7 +62,7 @@ Classificação por dois eixos:
 
 | # | Hipótese | Responsável sugerido |
 |---|----------|----------------------|
-| U4 | Formato do relatório (assinatura + QR Code) aceito pelo Tribunal | Jurídico / Representante do Tribunal |
+| U4 | Formato do relatório (QR Code) aceito pelo Tribunal | Jurídico / Representante do Tribunal |
 | N1 | Conformidade com a minuta do Tribunal | Jurídico / Representante do Tribunal |
 | T4 | Compatibilidade entre formatos ASP.NET HealthChecks e Spring Boot Actuator | Spike técnico |
 

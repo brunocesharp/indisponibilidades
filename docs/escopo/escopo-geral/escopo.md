@@ -67,7 +67,7 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 | **O que faz** | Gera relatório quando um sistema acumula mais de **2 horas** de indisponibilidade no dia |
 | **Destinatário** | Usuários que acessam o Portal de Serviços |
 | **Canal** | Página de relatórios dentro do Portal de Serviços |
-| **Autenticidade** | Relatório assinado digitalmente com QR Code para validação de autenticidade |
+| **Autenticidade** | Relatório com QR Code para validação de autenticidade |
 
 ---
 
@@ -79,7 +79,7 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 | **Horário padrão** | Meia-noite (configurável via arquivo de configuração) |
 | **Destinatário** | Administradores de Sistemas |
 | **Canal** | E-mail (conta AD) + página de relatórios no Portal de Serviço Administrativo |
-| **Autenticidade** | Relatório assinado digitalmente com QR Code para validação de autenticidade |
+| **Autenticidade** | Relatório com QR Code para validação de autenticidade |
 
 ---
 
@@ -145,7 +145,7 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 
 | # | Hipótese | Ação necessária |
 |---|----------|-----------------|
-| U4 | Formato do relatório (assinatura + QR Code) é aceito pelo Tribunal | Validar com representante do Tribunal antes do desenvolvimento |
+| U4 | Formato do relatório (QR Code) é aceito pelo Tribunal | Validar com representante do Tribunal antes do desenvolvimento |
 | N1 | O sistema estará em conformidade com a minuta do Tribunal ao entrar no ar | Revisão formal da minuta com jurídico ou Tribunal |
 | T4 | Formatos de resposta de ASP.NET HealthChecks e Spring Boot Actuator são compatíveis | Spike técnico antes do início do desenvolvimento |
 
@@ -182,7 +182,6 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 - [ ] Relatório diário do Administrador gerado corretamente por 5 dias consecutivos em homologação
 - [ ] Relatório por limiar (2h) gerado corretamente ao simular indisponibilidade em homologação
 - [ ] QR Code de validação funcionando em 100% dos relatórios gerados
-- [ ] Assinatura digital nos relatórios validada
 - [ ] Tempo de detecção ≤ 1 minuto confirmado em testes
 - [ ] Hierarquia de serviços propagando indisponibilidade corretamente nos testes
 - [ ] Conformidade formal com a minuta do Tribunal confirmada

@@ -84,7 +84,6 @@ Estes critérios devem ser atendidos antes do lançamento:
 - [ ] Relatório diário do Administrador gerado corretamente em ambiente de homologação por pelo menos 5 dias consecutivos
 - [ ] Relatório por limiar (2h) gerado corretamente ao simular indisponibilidade em ambiente de homologação
 - [ ] QR Code de validação funcionando em 100% dos relatórios gerados
-- [ ] Assinatura digital nos relatórios validada
 - [ ] Tempo de detecção de indisponibilidade ≤ 1 minuto confirmado em testes
 - [ ] Hierarquia de serviços propagando indisponibilidade corretamente nos testes
 - [ ] Conformidade formal com a minuta do Tribunal confirmada

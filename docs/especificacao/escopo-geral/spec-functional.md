@@ -21,7 +21,6 @@ O Sistema de Monitoramento de Indisponibilidade monitora a saúde das aplicaçõ
 - [Feature 4: Relatório por Limiar](#feature-4-relatório-por-limiar)
 - [Feature 5: Relatório Diário do Administrador](#feature-5-relatório-diário-do-administrador)
 - [Feature 6: Consulta de Relatórios](#feature-6-consulta-de-relatórios)
-- [Feature 7: Autenticação de Relatório](#feature-7-autenticação-de-relatório)
 
 ---
 
@@ -392,7 +391,7 @@ Então o relatório exibe o período de E-TCE com seus horários
 Feature: Relatório por Limiar
   In order to permitir que cidadãos comprovem indisponibilidade de sistemas em petições processuais
   As Sistema de Monitoramento
-  I want gerar automaticamente ao final de cada dia um relatório assinado e autenticável com os sistemas que atingiram o limiar de indisponibilidade
+  I want gerar automaticamente ao final de cada dia um relatório autenticável com os sistemas que atingiram o limiar de indisponibilidade
 ```
 
 ### Regras de Negócio
@@ -402,7 +401,7 @@ Feature: Relatório por Limiar
 - **RN-4.3** — O relatório exibe apenas sistemas que atingiram o limiar; sistemas abaixo não aparecem.
 - **RN-4.4** — Para cada sistema, o relatório exibe todos os períodos do dia (hora de início, hora de término, tempo do período) e o total acumulado.
 - **RN-4.5** — O relatório não é enviado por e-mail; fica disponível apenas na página de consulta do Portal de Serviços.
-- **RN-4.6** — O relatório contém: cabeçalho com logo e nome do tribunal, data de referência, tabela de períodos por sistema, total do dia, assinatura do Diretor DTI, e QR Code com URL de autenticação, código verificador e código do usuário.
+- **RN-4.6** — O relatório contém: cabeçalho com logo e nome do tribunal, data de referência, tabela de períodos por sistema, total do dia e QR Code com URL de autenticação, código verificador e código do usuário.
 - **RN-4.7** — O código verificador é único por relatório diário; o código do usuário é único por usuário e incluído conforme quem acessa o relatório.
 - **RN-4.8** — Se nenhum sistema atingir o limiar, nenhum relatório é gerado para o dia.
 - **RN-4.9** — Falha na geração gera exceção enviada ao sistema de log do tribunal.
@@ -656,69 +655,6 @@ Então o relatório parcial é exibido com indicação de que está em andamento
 
 ---
 
-## Feature 7: Autenticação de Relatório
-
-### Narrativa
-
-```
-Feature: Autenticação de Relatório
-  In order to confirmar que um relatório apresentado em petição é legítimo e foi gerado pelo TCE-MG
-  As Usuário autenticado no Portal de Serviços
-  I want informar o código verificador e o código do usuário para validar e visualizar o relatório original
-```
-
-### Regras de Negócio
-
-- **RN-7.1** — A funcionalidade de autenticação está disponível na página de relatórios do Portal de Serviços e requer o mesmo nível de autenticação da consulta de relatórios.
-- **RN-7.2** — A autenticação é realizada informando o código verificador (único por relatório) e o código do usuário (único por usuário, gerenciado pelo sistema de monitoramento).
-- **RN-7.3** — Quando ambos os códigos são válidos e correspondem, o relatório original é exibido com sua estrutura completa.
-- **RN-7.4** — Quando qualquer código é inválido ou não corresponde a um relatório existente, o sistema exibe mensagem informando que o relatório não foi encontrado.
-
-### Cenários
-
----
-
-#### Cenário 7.1: Autenticar relatório com códigos válidos
-
-```gherkin
-Dado que estou autenticado no Portal de Serviços
-  E possuo o código verificador "0000001" e o código de usuário "000000123" de um relatório existente
-Quando aciono a autenticação informando esses códigos
-Então o sistema localiza e exibe o relatório original com sua estrutura completa
-```
-
----
-
-#### Cenário 7.2: Autenticação com código inválido
-
-```gherkin
-Esquema do Cenário: Rejeitar autenticação com código inválido
-  Dado que estou autenticado no Portal de Serviços
-  Quando aciono a autenticação informando <situação>
-  Então o sistema exibe mensagem informando que o relatório não foi encontrado
-
-  Exemplos:
-    | situação                                                             |
-    | um código verificador que não existe no sistema                      |
-    | código verificador válido mas código de usuário que não corresponde  |
-```
-
----
-
-#### Cenário 7.3: Usuário não autenticado tenta acessar autenticação
-
-```gherkin
-Dado que não estou autenticado no Portal de Serviços
-Quando tento acessar a funcionalidade de autenticação de relatório
-Então sou redirecionado para a página de login do Portal de Serviços
-```
-
-### Pontos em Aberto
-
-> Nenhum ponto em aberto identificado para esta feature.
-
----
-
 ## Próximos Passos Sugeridos
 
 - **Modelagem de dados** — definir entidades, atributos e relacionamentos no Oracle 19c com base nas regras levantadas
@@ -734,3 +670,4 @@ Então sou redirecionado para a página de login do Portal de Serviços
 |------------|--------|------------------------------------------------------------------|---------|
 | 26/06/2026 | 1.0    | Versão inicial                                                   | —       |
 | 13/07/2026 | 2.0    | Reescrita completa seguindo template BDD v1.1 — cenários limpos, Esquema do Cenário onde aplicável, narrativas Feature Injection revisadas | Claude  |
+| 16/07/2026 | 2.1    | Remoção da Feature 7 (Autenticação de Relatório) e da assinatura digital dos relatórios; QR Code e códigos mantidos | Claude  |
