@@ -20,7 +20,8 @@ O Sistema de Monitoramento de Indisponibilidade monitora a saúde das aplicaçõ
 - [Feature 3: Hierarquia de Serviços](#feature-3-hierarquia-de-serviços)
 - [Feature 4: Relatório por Limiar](#feature-4-relatório-por-limiar)
 - [Feature 5: Relatório Diário do Administrador](#feature-5-relatório-diário-do-administrador)
-- [Feature 6: Consulta de Relatórios](#feature-6-consulta-de-relatórios)
+- [Feature 6: Consulta de Relatórios do Usuário](#feature-6-consulta-de-relatórios-do-usuário)
+- [Feature 7: Consulta de Relatórios do Administrador](#feature-7-consulta-de-relatórios-do-administrador)
 
 ---
 
@@ -556,44 +557,38 @@ Então uma exceção é gerada e enviada ao sistema de log do tribunal
 
 ---
 
-## Feature 6: Consulta de Relatórios
+## Feature 6: Consulta de Relatórios do Usuário
 
 ### Narrativa
 
 ```
-Feature: Consulta de Relatórios
-  In order to acessar e utilizar informações de indisponibilidade quando necessário
-  As Usuário ou Administrador de Sistemas autenticado no Portal de Serviços
-  I want consultar relatórios de indisponibilidade por data, com visibilidade adequada ao meu perfil
+Feature: Consulta de Relatórios do Usuário
+  In order to acessar de forma rápida e sempre disponível os relatórios que preciso para comprovar indisponibilidades
+  As Usuário autenticado no Portal de Serviços
+  I want consultar o relatório por limiar por data em uma tela dedicada, publicada de forma independente
 ```
 
 ### Regras de Negócio
 
-- **RN-6.1** — Relatórios ficam disponíveis a partir do dia seguinte (d-1); qualquer data histórica pode ser consultada.
-- **RN-6.2** — O tipo de relatório exibido é determinado pelo perfil identificado via claim `listaGruposSistema` do token SSO: valor `PRT_SRV_ADMINISTRADORES` identifica o Administrador.
-- **RN-6.3** — O Usuário vê o relatório por limiar — sistemas que atingiram o limiar no dia — sem informações hierárquicas.
-- **RN-6.4** — O Administrador vê todos os sistemas com indisponibilidade no dia, com relação hierárquica indicada.
-- **RN-6.5** — Quando não há indisponibilidades na data consultada, o sistema exibe mensagem informando ausência — para ambos os perfis.
+- **RN-6.1** — A tela de consulta do Usuário é um projeto separado, publicado e implantado de forma independente das demais telas, para garantir o acesso mais direto possível e reduzir o risco de indisponibilidade.
+- **RN-6.2** — A tela exibe apenas o relatório por limiar: os sistemas que atingiram o limiar de indisponibilidade no dia, sem informações hierárquicas.
+- **RN-6.3** — Relatórios ficam disponíveis a partir do dia seguinte (d-1); qualquer data histórica pode ser consultada.
+- **RN-6.4** — Quando nenhum sistema atingiu o limiar na data consultada, a tela exibe mensagem informando ausência de indisponibilidades.
+- **RN-6.5** — Consulta de data futura ou do dia atual exibe mensagem informando que não há relatório disponível para a data selecionada.
 - **RN-6.6** — Usuário não autenticado é redirecionado para o login do Portal de Serviços.
-- **RN-6.7** — O botão "Baixar PDF" fica disponível no relatório d-1 concluído; o botão "Baixar Parcial" fica disponível apenas para o Administrador no relatório do dia atual.
+- **RN-6.7** — O botão "Baixar PDF" fica disponível no relatório d-1 concluído.
 
 ### Cenários
 
 ---
 
-#### Cenário 6.1: Perfil determina a visão do relatório
+#### Cenário 6.1: Usuário consulta o relatório por limiar de uma data d-1
 
 ```gherkin
-Esquema do Cenário: Visão do relatório por perfil do usuário
-  Dado que existo no sistema com o token <perfil>
-    E existem sistemas com indisponibilidade na data consultada
-  Quando acesso a página de relatórios e consulto uma data d-1
-  Então o sistema exibe <conteúdo>
-
-  Exemplos:
-    | perfil                                    | conteúdo                                                                 |
-    | sem claim PRT_SRV_ADMINISTRADORES         | apenas os sistemas que atingiram o limiar, sem hierarquia               |
-    | com claim PRT_SRV_ADMINISTRADORES         | todos os sistemas com indisponibilidade, com relação hierárquica        |
+Dado que estou autenticado no Portal de Serviços
+  E existem sistemas que atingiram o limiar na data consultada
+Quando acesso a tela de consulta do Usuário e consulto uma data d-1
+Então a tela exibe apenas os sistemas que atingiram o limiar, sem informações hierárquicas
 ```
 
 ---
@@ -602,28 +597,28 @@ Esquema do Cenário: Visão do relatório por perfil do usuário
 
 ```gherkin
 Dado que estou autenticado no Portal de Serviços
-  E não há indisponibilidades registradas na data consultada
+  E nenhum sistema atingiu o limiar na data consultada
 Quando consulto o relatório de uma data específica
-Então o sistema exibe mensagem informando que não houve indisponibilidades naquele dia
+Então a tela exibe mensagem informando que não houve indisponibilidades naquele dia
 ```
 
 ---
 
-#### Cenário 6.3: Tentativa de consulta de data futura ou do dia atual pelo Usuário
+#### Cenário 6.3: Tentativa de consulta de data futura ou do dia atual
 
 ```gherkin
-Dado que estou autenticado como Usuário (sem claim de Administrador)
+Dado que estou autenticado como Usuário no Portal de Serviços
 Quando consulto o relatório de uma data futura ou da data atual
-Então o sistema exibe mensagem informando que não há relatório disponível para a data selecionada
+Então a tela exibe mensagem informando que não há relatório disponível para a data selecionada
 ```
 
 ---
 
-#### Cenário 6.4: Usuário não autenticado tenta acessar a página de relatórios
+#### Cenário 6.4: Usuário não autenticado tenta acessar a tela
 
 ```gherkin
 Dado que não estou autenticado no Portal de Serviços
-Quando tento acessar a página de relatórios de indisponibilidade
+Quando tento acessar a tela de consulta de relatórios do Usuário
 Então sou redirecionado para a página de login do Portal de Serviços
 ```
 
@@ -634,12 +629,83 @@ Então sou redirecionado para a página de login do Portal de Serviços
 ```gherkin
 Dado que estou autenticado e existe relatório concluído para a data consultada
 Quando consulto o relatório de uma data d-1
-Então o botão "Baixar PDF" está disponível no relatório
+Então o botão "Baixar PDF" está disponível na tela
+```
+
+### Pontos em Aberto
+
+> Nenhum ponto em aberto identificado para esta feature.
+
+---
+
+## Feature 7: Consulta de Relatórios do Administrador
+
+### Narrativa
+
+```
+Feature: Consulta de Relatórios do Administrador
+  In order to acompanhar todas as indisponibilidades do dia com contexto hierárquico
+  As Administrador de Sistemas autenticado no Portal de Serviço Administrativo
+  I want consultar os relatórios de indisponibilidade por data em uma tela dedicada ao meu perfil
+```
+
+### Regras de Negócio
+
+- **RN-7.1** — O acesso à tela do Administrador requer o perfil identificado via claim `listaGruposSistema` do token SSO, com valor `PRT_SRV_ADMINISTRADORES`.
+- **RN-7.2** — A tela exibe todos os sistemas com indisponibilidade no dia, com a relação hierárquica indicada.
+- **RN-7.3** — Relatórios ficam disponíveis a partir do dia seguinte (d-1); qualquer data histórica pode ser consultada.
+- **RN-7.4** — Quando não há indisponibilidades na data consultada, a tela exibe mensagem informando ausência.
+- **RN-7.5** — Usuário não autenticado é redirecionado para o login do Portal de Serviços.
+- **RN-7.6** — O botão "Baixar PDF" fica disponível no relatório d-1 concluído; o botão "Baixar Parcial" fica disponível no relatório do dia atual.
+- **RN-7.7** — O Administrador pode gerar o relatório parcial do dia atual, exibido com indicação de que está em andamento.
+
+### Cenários
+
+---
+
+#### Cenário 7.1: Administrador consulta os relatórios de uma data d-1
+
+```gherkin
+Dado que estou autenticado como Administrador (claim PRT_SRV_ADMINISTRADORES)
+  E existem sistemas com indisponibilidade na data consultada
+Quando acesso a tela de consulta do Administrador e consulto uma data d-1
+Então a tela exibe todos os sistemas com indisponibilidade, com relação hierárquica
 ```
 
 ---
 
-#### Cenário 6.6: Administrador baixa relatório parcial do dia atual
+#### Cenário 7.2: Consulta de data sem indisponibilidades
+
+```gherkin
+Dado que estou autenticado como Administrador
+  E não há indisponibilidades registradas na data consultada
+Quando consulto o relatório de uma data específica
+Então a tela exibe mensagem informando que não houve indisponibilidades naquele dia
+```
+
+---
+
+#### Cenário 7.3: Usuário não autenticado tenta acessar a tela
+
+```gherkin
+Dado que não estou autenticado no Portal de Serviços
+Quando tento acessar a tela de consulta de relatórios do Administrador
+Então sou redirecionado para a página de login do Portal de Serviços
+```
+
+---
+
+#### Cenário 7.4: Download de PDF disponível para relatório d-1 concluído
+
+```gherkin
+Dado que estou autenticado como Administrador e existe relatório concluído para a data consultada
+Quando consulto o relatório de uma data d-1
+Então o botão "Baixar PDF" está disponível na tela
+```
+
+---
+
+#### Cenário 7.5: Administrador baixa relatório parcial do dia atual
 
 ```gherkin
 Dado que estou autenticado como Administrador
@@ -671,3 +737,4 @@ Então o relatório parcial é exibido com indicação de que está em andamento
 | 26/06/2026 | 1.0    | Versão inicial                                                   | —       |
 | 13/07/2026 | 2.0    | Reescrita completa seguindo template BDD v1.1 — cenários limpos, Esquema do Cenário onde aplicável, narrativas Feature Injection revisadas | Claude  |
 | 16/07/2026 | 2.1    | Remoção da Feature 7 (Autenticação de Relatório) e da assinatura digital dos relatórios; QR Code e códigos mantidos | Claude  |
+| 16/07/2026 | 2.2    | Separação da Consulta de Relatórios em duas telas/features: Usuário (relatório por limiar, projeto publicado de forma independente) e Administrador (inalterada) | Claude  |

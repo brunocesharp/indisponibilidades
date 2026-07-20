@@ -14,6 +14,8 @@ Monitorar a saúde das aplicações e fornecer relatórios sobre a indisponibili
 ## Estrutura de Documentação
 - Discovery: `docs/discovery/`
 - Escopo: `docs/escopo/`
+- Especificação: `docs/especificacao/`
+- Modelagem de Dados: `docs/data-modeling/` (modelo conceitual/lógico/físico + DDL Oracle, schema USU_INDISPONIBILIDADE — v1.1, 20/07/2026)
 
 ## Status das Fases
 - [x] Discovery (em andamento)

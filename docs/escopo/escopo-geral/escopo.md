@@ -83,18 +83,29 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 
 ---
 
-### 5. Consulta de Relatórios
+### 5. Consulta de Relatórios do Usuário
 
 | Aspecto | Detalhe |
 |---------|---------|
-| **O que faz** | Permite buscar relatórios de indisponibilidade por data |
-| **Acesso** | Requer autenticação; tipo de relatório exibido determinado pelo perfil do usuário via claim `listaGruposSistema` do token SSO |
-| **Administrador** | Acessa todos os relatórios (`listaGruposSistema = PRT_SRV_ADMINISTRADORES`) |
-| **Usuário** | Acessa relatórios por limiar (sistemas com > 2h de indisponibilidade) |
+| **O que faz** | Permite ao Usuário buscar o relatório por limiar por data |
+| **Tela** | Projeto separado, publicado e implantado de forma independente das demais telas — acesso mais direto possível e menor risco de indisponibilidade |
+| **Acesso** | Requer autenticação no Portal de Serviços |
+| **Conteúdo** | Sistemas que atingiram o limiar no dia (sem hierarquia) |
 
 ---
 
-### 6. Gerenciamento de Serviços (Administrador)
+### 6. Consulta de Relatórios do Administrador
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **O que faz** | Permite ao Administrador buscar relatórios de indisponibilidade por data |
+| **Tela** | Página de relatórios no Portal de Serviço Administrativo |
+| **Acesso** | Requer perfil de Administrador via claim `listaGruposSistema = PRT_SRV_ADMINISTRADORES` do token SSO |
+| **Conteúdo** | Todos os sistemas com indisponibilidade no dia, com relação hierárquica; permite relatório parcial do dia atual |
+
+---
+
+### 7. Gerenciamento de Serviços (Administrador)
 
 | Aspecto | Detalhe |
 |---------|---------|
