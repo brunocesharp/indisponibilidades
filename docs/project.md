@@ -22,6 +22,6 @@ Monitorar a saúde das aplicações e fornecer relatórios sobre a indisponibili
 - [x] Escopo (rascunho)
 - [ ] Especificação
 - [ ] Refinamento
-- [ ] Plano de Execução
+- [x] Plano de Execução (`docs/execution-plans/monitoramento-indisponibilidade/`)
 - [ ] Homologação
 - [ ] Produção
