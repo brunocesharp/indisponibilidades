@@ -7,27 +7,28 @@
 | **Escopo** | `docs/escopo/escopo-geral/escopo.md` |
 | **Modelo de Dados** | `docs/data-modeling/` (schema `USU_INDISPONIBILIDADE`) |
 | **Autor** | Bruno |
-| **Data** | 2026-07-20 |
+| **Data** | 2026-07-23 |
 | **Status** | Rascunho |
-| **Versão** | 1.0 |
+| **Versão** | 1.1 |
 
 ---
 
 ## Resumo Executivo
 
 ### Objetivo
-Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verificação periódica de healthchecks, registro preciso de períodos de indisponibilidade (sem falsos positivos via buffer de 2 falhas), hierarquia entre serviços e geração/consulta de relatórios autenticáveis (por limiar e diário do administrador). Backend .NET (Clean Architecture + Worker + Oracle 19c) e dois frontends Angular (Portal Administrativo e consulta do Usuário, publicada de forma independente).
+Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verificação periódica de healthchecks, registro preciso de períodos de indisponibilidade (sem falsos positivos via buffer de 2 falhas), hierarquia entre serviços e geração/consulta de relatórios autenticáveis (por limiar e diário do administrador). Backend .NET (Clean Architecture + Worker + Oracle 19c) e dois frontends Angular: o **Portal Administrativo** (rede interna, autenticado via SSO) e a **Aplicação Pública** (rede isolada/DMZ, deploy próprio, **sem autenticação**) que reúne a página de acompanhamento em tempo real e a consulta do relatório do Usuário, exposta a usuários externos ao tribunal.
 
 ### Escopo
 
-**Incluído (7 features da spec):**
+**Incluído (7 features da spec + página de tempo real do escopo):**
 - F1 — Gerenciamento de Serviços Monitorados (CRUD + ciclo de vida)
 - F2 — Monitoramento de Healthcheck (worker + buffer + persistência)
 - F3 — Hierarquia de Serviços (vínculos N:M + exibição em relatórios)
 - F4 — Relatório por Limiar (job diário + PDF/QR)
 - F5 — Relatório Diário do Administrador (+ parcial sob demanda)
-- F6 — Consulta de Relatórios do Usuário (projeto Angular independente)
+- F6 — Consulta de Relatórios do Usuário — parte da **Aplicação Pública** (DMZ, sem autenticação)
 - F7 — Consulta de Relatórios do Administrador
+- **Página de Acompanhamento em Tempo Real** (escopo §5) — parte da **Aplicação Pública**: estado atual das aplicações a partir do banco, atualização automática a cada minuto, botão de refresh manual e navegação para a consulta do Usuário
 
 **Não incluído (fora do escopo — spec/escopo):**
 - Cadastro/gestão de usuários e autenticação (responsabilidade do SSO)
@@ -39,6 +40,7 @@ Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verifica�
 - **Estado Angular:** BehaviorSubject (services de estado). Migração para NgRx só em refactoring planejado, se necessário.
 - **Banco:** Oracle 19c, schema `USU_INDISPONIBILIDADE` conforme modelo já definido.
 - **Configuração:** frequência de verificação (1 min) e horário do relatório (meia-noite) e limiar (120 min) via `appsettings`, sem redeploy.
+- **Segregação de rede:** duas aplicações Angular independentes — Portal Administrativo (rede interna, SSO) e Aplicação Pública (rede isolada/DMZ, sem autenticação, deploy próprio). O backend/banco são compartilhados; a Aplicação Pública consome apenas os dados de exibição via endpoints anônimos.
 
 ### Métricas de Sucesso (do escopo)
 - 100% dos sistemas cadastrados sendo monitorados; detecção ≤ 1 minuto.
@@ -56,13 +58,13 @@ Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verifica�
 | 1 | Gerenciamento de Serviços | F1, F3 (vínculos) | CRUD + ciclo de vida + integração inventário Portal + tela admin | ~13d | Entrega 0 |
 | 2 | Monitoramento de Healthcheck | F2, F3 (independência) | Worker de verificação, buffer em memória, persistência de períodos | ~8d | Entrega 1 |
 | 3 | Geração de Relatórios | F4, F5 | Jobs diários, relatório por limiar + diário admin, PDF/QR, parcial | ~9d | Entrega 2 |
-| 4 | Consulta do Usuário | F6 | Projeto Angular independente + endpoint de consulta d-1 + download PDF | ~4d | Entrega 3 |
+| 4 | Aplicação Pública (Tempo Real + Consulta Usuário) | F6 + Tempo Real | App Angular independente em DMZ, sem autenticação: página de tempo real (auto-refresh 1 min + botão manual) + consulta d-1 + download PDF, via endpoints anônimos | ~7d | Entrega 3 |
 | 5 | Consulta do Administrador | F7 | Tela admin de consulta + hierarquia + relatório parcial | ~4d | Entrega 3 |
-| 6 | Homologação e Produção | — | Deploy API+Worker+2 frontends, validação go-live, produção | ~3d | Entregas 1-5 |
+| 6 | Homologação e Produção | — | Deploy API+Worker + Portal Admin (interno) + Aplicação Pública (DMZ), validação go-live, produção | ~3d | Entregas 1-5 |
 
-**Estimativa Total:** ~47 dias (~268h)
-**Buffer (20%):** ~9 dias
-**Total com Buffer:** ~56 dias (~11 semanas com 1 dev)
+**Estimativa Total:** ~50 dias (~281h)
+**Buffer (20%):** ~10 dias
+**Total com Buffer:** ~60 dias (~12 semanas com 1 dev)
 
 > Entregas 4 e 5 são independentes entre si (ambas dependem só da Entrega 3) e podem ser reordenadas.
 
@@ -94,22 +96,22 @@ Preparar toda a base técnica para que as features subsequentes só precisem adi
 | ID | Título do Item | Tipo | Est. |
 |----|----------------|------|------|
 | 0.8 | [HT] [ADMIN] - Criar projeto Angular Portal Administrativo + estrutura Core/Shared | Setup | 4h |
-| 0.9 | [HT] [USUARIO] - Criar projeto Angular independente (consulta do Usuário), deploy separado | Setup | 3h |
-| 0.10 | [HT] [CORE] - Criar `AuthInterceptor` (JWT) + `AuthGuard` (SSO) nos dois projetos | Interceptor/Guard | 4h |
-| 0.11 | [HT] [CORE] - Configurar `environment` (homolog/prod) + `HttpErrorInterceptor` global | Config | 2h |
+| 0.9 | [HT] [PUBLICO] - Criar projeto Angular Aplicação Pública (tempo real + consulta), independente, deploy próprio para rede isolada (DMZ), **sem autenticação** | Setup | 3h |
+| 0.10 | [HT] [ADMIN] - Criar `AuthInterceptor` (JWT) + `AuthGuard` (SSO) **apenas no Portal Administrativo** | Interceptor/Guard | 3h |
+| 0.11 | [HT] [CORE] - Configurar `environment` (homolog/prod) + `HttpErrorInterceptor` global nos dois apps | Config | 2h |
 
 ### Subtotal Entrega 0
 | Categoria | Estimativa |
 |-----------|------------|
 | Backend | 21h |
-| Frontend | 13h |
-| **Total** | **34h (~6 dias)** |
+| Frontend | 12h |
+| **Total** | **33h (~6 dias)** |
 
 ### Critérios de Aceite
 - [ ] Solução compila e sobe API + Worker vazios; Swagger acessível.
 - [ ] Migration aplica o schema `USU_INDISPONIBILIDADE` completo no Oracle 19c.
-- [ ] Autenticação SSO validando token e distinguindo perfil Administrador.
-- [ ] Dois projetos Angular sobem com guard/interceptor configurados.
+- [ ] Autenticação SSO validando token e distinguindo perfil Administrador (Portal Administrativo).
+- [ ] Portal Administrativo sobe com guard/interceptor; Aplicação Pública sobe sem autenticação, com deploy independente configurado para DMZ.
 
 ---
 
@@ -304,10 +306,10 @@ Ao final do dia (meia-noite configurável), gerar automaticamente o relatório p
 
 ---
 
-## Entrega 4: Consulta de Relatórios do Usuário (F6)
+## Entrega 4: Aplicação Pública — Tempo Real + Consulta do Usuário (F6 + Página de Tempo Real)
 
 ### Objetivo
-Usuário autenticado no Portal de Serviços consulta o relatório por limiar por data, em projeto Angular publicado de forma independente, com download de PDF.
+Entregar a **Aplicação Pública**: app Angular independente, publicado em rede isolada (DMZ) com deploy próprio e **acesso sem autenticação**, para usuários externos ao tribunal. Reúne (a) a página de acompanhamento em tempo real das aplicações monitoradas — estado atual a partir do banco, atualização automática a cada minuto e botão de refresh manual — e (b) a consulta do relatório por limiar por data, com download de PDF. Navegação entre as duas telas via botão. Consumo via endpoints anônimos.
 
 ### Tarefas
 
@@ -315,36 +317,40 @@ Usuário autenticado no Portal de Serviços consulta o relatório por limiar por
 | ID | Título do Item | Tipo | Skill | Est. |
 |----|----------------|------|-------|------|
 | 4.1 | [TASK] Desenvolver - [RELATORIO] - Criar `GetRelatorioLimiarPorDataQuery` (d-1; futura/atual → indisponível) | Query | `dotnet-application-feature` | 3h |
-| 4.2 | [TASK] Desenvolver - [RELATORIO] - Criar endpoint de consulta do Usuário + download de PDF | Controller | `dotnet-endpoint-generator` | 3h |
+| 4.2 | [TASK] Desenvolver - [MONITOR] - Criar `GetStatusTempoRealQuery` (estado atual das aplicações monitoradas a partir do banco) | Query | `dotnet-application-feature` | 3h |
+| 4.3 | [TASK] Desenvolver - [PUBLICO] - Criar endpoints **anônimos** da Aplicação Pública (consulta d-1 + download PDF + status tempo real) | Controller | `dotnet-endpoint-generator` | 4h |
 
-#### Frontend — App do Usuário (independente)
+#### Frontend — Aplicação Pública (independente, DMZ, sem autenticação)
 | ID | Título do Item | Tipo | Est. |
 |----|----------------|------|------|
-| 4.3 | [TASK] Desenvolver - [USUARIO] - Criar models + `RelatorioUsuarioService` (HttpClient GET) | Service | 2.5h |
-| 4.4 | [TASK] Desenvolver - [USUARIO] - Criar `consulta.module.ts` + rota lazy | Module/Routing | 1h |
-| 4.5 | [TASK] Desenvolver - [USUARIO] - Criar `ConsultaRelatorioComponent` (Smart: seletor de data, mensagens de ausência/data inválida) | Component | 4h |
-| 4.6 | [TASK] Desenvolver - [USUARIO] - Criar `RelatorioViewComponent` (Presentational + botão "Baixar PDF") | Component | 3h |
-| 4.7 | [TASK] Desenvolver - [USUARIO] - Configurar `AuthGuard` (não autenticado → login do Portal) | Guard | 1h |
+| 4.4 | [TASK] Desenvolver - [PUBLICO] - Criar models + `RelatorioUsuarioService` + `StatusTempoRealService` (HttpClient GET; polling 1 min) | Service | 3h |
+| 4.5 | [TASK] Desenvolver - [PUBLICO] - Criar routing público (**sem AuthGuard**) + shell de navegação entre Tempo Real e Consulta | Module/Routing | 2h |
+| 4.6 | [TASK] Desenvolver - [PUBLICO] - Criar `MonitoramentoTempoRealComponent` (Smart: auto-refresh a cada minuto, botão "Atualizar" manual, botão de acesso à Consulta) | Component | 5h |
+| 4.7 | [TASK] Desenvolver - [PUBLICO] - Criar `StatusTempoRealComponent` (Presentational, OnPush: cards/tabela de status) | Component | 3h |
+| 4.8 | [TASK] Desenvolver - [PUBLICO] - Criar `ConsultaRelatorioComponent` (Smart: seletor de data, mensagens de ausência/data inválida) | Component | 4h |
+| 4.9 | [TASK] Desenvolver - [PUBLICO] - Criar `RelatorioViewComponent` (Presentational + botão "Baixar PDF") | Component | 3h |
 
 #### Testes
 | ID | Título do Item | Tipo | Est. |
 |----|----------------|------|------|
-| 4.8 | [TASK] Testar - [USUARIO] - Testes unitários service + component (datas, ausência, download) | Unit (Angular) | 4h |
-| 4.9 | [TASK] Testar - [RELATORIO] - Testes de integração da query por data | Integration | 2h |
+| 4.10 | [TASK] Testar - [PUBLICO] - Testes unitários services + components (datas, ausência, download, polling/refresh manual) | Unit (Angular) | 5h |
+| 4.11 | [TASK] Testar - [RELATORIO] - Testes de integração das queries (por data + status tempo real) | Integration | 3h |
 
 ### Subtotal Entrega 4
 | Categoria | Estimativa |
 |-----------|------------|
-| Backend | 6h |
-| Frontend | 11.5h |
-| Testes | 6h |
-| **Total** | **23.5h (~4 dias)** |
+| Backend | 10h |
+| Frontend | 20h |
+| Testes | 8h |
+| **Total** | **38h (~7 dias)** |
 
 ### Critérios de Aceite
 - [ ] Consulta d-1 exibe só sistemas do limiar, sem hierarquia; data sem indisponibilidade mostra mensagem (Cenários 6.1-6.2).
-- [ ] Data futura/atual → "sem relatório disponível"; não autenticado → login (Cenários 6.3-6.4).
-- [ ] Botão "Baixar PDF" disponível no relatório d-1 concluído (Cenário 6.5).
-- [ ] App publicado/deployável de forma independente (RN-6.1).
+- [ ] Data futura/atual → "sem relatório disponível" (Cenário 6.3).
+- [ ] Acesso **público sem autenticação** a partir de rede externa/DMZ; navegação da página de tempo real para a consulta (Cenários 6.4-6.5).
+- [ ] Botão "Baixar PDF" disponível no relatório d-1 concluído (Cenário 6.6).
+- [ ] Página de tempo real exibe o estado atual das aplicações a partir do banco, atualiza automaticamente a cada minuto e possui botão de refresh manual (escopo §5).
+- [ ] Aplicação Pública publicada/deployável de forma independente em rede isolada (DMZ) (RN-6.1, RN-6.8).
 
 ---
 
@@ -394,20 +400,20 @@ Administrador (claim `PRT_SRV_ADMINISTRADORES`) consulta relatórios por data no
 ## Entrega 6: Homologação e Produção
 
 ### Objetivo
-Publicar API + Worker + os dois frontends em homologação, validar os critérios de go-live e promover para produção.
+Publicar API + Worker + os dois frontends em homologação (Portal Administrativo na rede interna e Aplicação Pública na rede isolada/DMZ), validar os critérios de go-live e promover para produção.
 
 ### Tarefas
 | ID | Título do Item | Tipo | Skill | Est. |
 |----|----------------|------|-------|------|
 | 6.1 | [HT] [DEVOPS] - Deploy da API + Worker em homologação | Deploy | `dotnet-deploy-homolog` | 3h |
-| 6.2 | [HT] [DEVOPS] - Deploy dos frontends Angular (Admin + Usuário) em homologação | Deploy | - | 2h |
-| 6.3 | [TASK] Testar - [GO-LIVE] - Validação: relatório diário por 5 dias, QR, limiar 2h, detecção ≤1min, hierarquia | Validação | - | 4h |
-| 6.4 | [HT] [DEVOPS] - Deploy em produção (API + Worker + frontends) | Deploy | `dotnet-deploy-prod` | 3h |
+| 6.2 | [HT] [DEVOPS] - Deploy do Portal Administrativo (rede interna) e da Aplicação Pública (rede isolada/DMZ) em homologação | Deploy | - | 3h |
+| 6.3 | [TASK] Testar - [GO-LIVE] - Validação: relatório diário por 5 dias, QR, limiar 2h, detecção ≤1min, hierarquia, acesso público à DMZ (tempo real + consulta sem autenticação) | Validação | - | 4h |
+| 6.4 | [HT] [DEVOPS] - Deploy em produção (API + Worker + Portal Admin interno + Aplicação Pública DMZ) | Deploy | `dotnet-deploy-prod` | 3h |
 
 ### Subtotal Entrega 6
 | Categoria | Estimativa |
 |-----------|------------|
-| **Total** | **12h (~2-3 dias)** |
+| **Total** | **13h (~2-3 dias)** |
 
 ### Critérios de Aceite (Go-live — do escopo)
 - [ ] 100% dos sistemas do Portal sendo monitorados.
@@ -432,7 +438,7 @@ gantt
     Entrega 2 - Healthcheck Worker      :e2, after e1, 8d
     section Relatórios
     Entrega 3 - Geração de Relatórios   :e3, after e2, 9d
-    Entrega 4 - Consulta Usuário        :e4, after e3, 4d
+    Entrega 4 - App Pública (Tempo Real + Consulta) :e4, after e3, 7d
     Entrega 5 - Consulta Administrador  :e5, after e4, 4d
     section Deploy
     Entrega 6 - Homolog + Produção      :e6, after e5, 3d
@@ -449,7 +455,9 @@ gantt
 | Formato do relatório/QR não aceito pelo Tribunal | Média | Alto | Validar minuta (hipóteses U4/N1) antes da Entrega 3 |
 | Buffer em memória perde estado em restart | Baixa | Médio | Comportamento esperado por design (RN-2.7); reinício reinicia ciclo |
 | Geração de PDF/QR mais complexa que estimado | Média | Médio | Isolar em adapter; prototipar cedo (protótipos PDF já existem em `docs/protótipos/relatorio-pdf/`) |
-| 1 dev = caminho crítico longo (~11 semanas) | Alta | Médio | Entregas 4 e 5 reordenáveis; possível paralelizar se entrar 2º dev |
+| 1 dev = caminho crítico longo (~12 semanas) | Alta | Médio | Entregas 4 e 5 reordenáveis; possível paralelizar se entrar 2º dev |
+| Publicação em rede isolada (DMZ) da Aplicação Pública não liberada a tempo | Média | Alto | Envolver Segurança/Infra cedo; validar topologia de rede e exposição externa antes da Entrega 4 |
+| Endpoints anônimos da Aplicação Pública expondo dados além do necessário | Baixa | Alto | Restringir endpoints públicos apenas a status de tempo real e relatório por limiar; sem dados administrativos/hierarquia |
 
 ---
 
@@ -462,6 +470,7 @@ gantt
 | Sistema de log do tribunal | Infra/DTI | Entrega 0 |
 | Liberação de acesso aos endpoints internos | Segurança e Infra | Entrega 2 |
 | Validação da minuta e do formato de relatório | Tribunal | Entrega 3 |
+| Rede isolada (DMZ) para publicação da Aplicação Pública com exposição externa | Segurança e Infra | Entrega 4 |
 | Ambientes de homolog e produção | DevOps | Entrega 6 |
 
 ---
@@ -479,3 +488,4 @@ gantt
 | Versão | Data | Autor | Descrição |
 |--------|------|-------|-----------|
 | 1.0 | 2026-07-20 | Bruno / Claude | Versão inicial — 7 features em 7 entregas (0-6), 1 dev fullstack, BehaviorSubject |
+| 1.1 | 2026-07-23 | Bruno / Claude | Aplicação Pública em rede isolada (DMZ) sem autenticação; Entrega 4 reestruturada para incluir a página de acompanhamento em tempo real (escopo §5); F6 sem login; ajustes em Entregas 0 e 6, riscos, dependências e totais (~281h / ~60 dias) |

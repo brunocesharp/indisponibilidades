@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoramento de Indisponibilidade — Acompanhamento em Tempo Real</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-primary: #1a56db;
+      --color-primary-dark: #1e429f;
+      --color-primary-light: #ebf0ff;
+      --color-success: #057a55;
+      --color-success-light: #def7ec;
+      --color-warning: #9f580a;
+      --color-warning-light: #fdf6b2;
+      --color-danger: #c81e1e;
+      --color-danger-light: #fde8e8;
+      --color-neutral-50: #f9fafb;
+      --color-neutral-100: #f3f4f6;
+      --color-neutral-200: #e5e7eb;
+      --color-neutral-300: #d1d5db;
+      --color-neutral-400: #9ca3af;
+      --color-neutral-500: #6b7280;
+      --color-neutral-600: #4b5563;
+      --color-neutral-700: #374151;
+      --color-neutral-800: #1f2937;
+      --color-neutral-900: #111827;
+      --color-surface: #ffffff;
+      --color-bg: #f3f4f6;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--color-bg); color: var(--color-neutral-800); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* HEADER — público, sem login */
+    .header { background: var(--color-primary-dark); color: white; padding: 0 32px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-md); }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo { width: 32px; height: 32px; background: white; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--color-primary-dark); font-size: 14px; }
+    .header-title { font-size: 15px; font-weight: 600; }
+    .header-subtitle { font-size: 12px; opacity: 0.75; }
+    .header-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; background: rgba(255,255,255,0.14); padding: 6px 12px; border-radius: 20px; }
+    .header-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.25); }
+
+    /* NAV / TABS — mesmo sistema */
+    .navbar { background: var(--color-surface); border-bottom: 1px solid var(--color-neutral-200); padding: 0 32px; display: flex; gap: 4px; }
+    .nav-tab { display: inline-flex; align-items: center; gap: 8px; padding: 14px 18px; font-size: 13px; font-weight: 600; color: var(--color-neutral-500); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+    .nav-tab:hover { color: var(--color-neutral-800); }
+    .nav-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+    .nav-tab svg { width: 16px; height: 16px; }
+
+    .main { flex: 1; padding: 28px 32px; max-width: 1180px; margin: 0 auto; width: 100%; }
+
+    .page-header { margin-bottom: 20px; }
+    .page-title { font-size: 22px; font-weight: 700; color: var(--color-neutral-900); letter-spacing: -0.02em; }
+    .page-desc { font-size: 13px; color: var(--color-neutral-500); margin-top: 4px; }
+
+    /* BARRA DE CONTROLE — atualização */
+    .control-bar { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: 14px 18px; box-shadow: var(--shadow-sm); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .control-left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .refresh-status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-neutral-600); }
+    .refresh-status .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); position: relative; }
+    .refresh-status .live-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--color-success); opacity: 0.4; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+    .refresh-meta { font-size: 12px; color: var(--color-neutral-400); }
+    .refresh-meta strong { color: var(--color-neutral-700); font-weight: 600; }
+    .countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--color-primary); }
+    .control-right { display: flex; align-items: center; gap: 10px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; text-decoration: none; }
+    .btn-primary { background: var(--color-primary); color: white; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+    .btn-secondary { background: var(--color-surface); color: var(--color-neutral-700); border: 1px solid var(--color-neutral-300); }
+    .btn-secondary:hover { background: var(--color-neutral-50); }
+    .btn-success { background: var(--color-success); color: white; }
+    .btn-success:hover { background: #046644; }
+    .btn svg { width: 15px; height: 15px; }
+    .btn.spinning svg { animation: spin 0.8s linear; }
+    @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+    /* GRID DE STATUS */
+    .section-title { font-size: 14px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .status-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; border-left: 4px solid var(--color-neutral-300); transition: box-shadow 0.15s; }
+    .status-card:hover { box-shadow: var(--shadow-md); }
+    .status-card.ok { border-left-color: var(--color-success); }
+    .status-card.down { border-left-color: var(--color-danger); }
+    .status-card-body { padding: 16px 18px; }
+    .status-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+    .status-sys { display: flex; align-items: center; gap: 11px; }
+    .status-sys-icon { width: 38px; height: 38px; border-radius: var(--radius-md); background: var(--color-neutral-100); display: flex; align-items: center; justify-content: center; font-size: 17px; }
+    .status-sys-name { font-size: 14px; font-weight: 700; color: var(--color-neutral-900); }
+    .status-sys-sigla { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; margin-top: 1px; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge .bdot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge.ok { background: var(--color-success-light); color: var(--color-success); }
+    .badge.ok .bdot { background: var(--color-success); }
+    .badge.down { background: var(--color-danger-light); color: var(--color-danger); }
+    .badge.down .bdot { background: var(--color-danger); }
+    .status-card-foot { display: flex; align-items: center; justify-content: flex-start; border-top: 1px solid var(--color-neutral-100); padding-top: 12px; }
+    .status-check { font-size: 11px; color: var(--color-neutral-400); display: flex; align-items: center; gap: 4px; }
+
+    /* ---- VIEW RELATÓRIO DE LIMIAR ---- */
+    .search-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 22px; }
+    .search-card-title { font-size: 14px; font-weight: 600; color: var(--color-neutral-800); margin-bottom: 16px; }
+    .search-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--color-neutral-700); }
+    .form-input { padding: 9px 12px; border: 1px solid var(--color-neutral-300); border-radius: var(--radius-md); font-size: 13px; font-family: inherit; color: var(--color-neutral-800); background: var(--color-surface); outline: none; transition: border 0.15s; }
+    .form-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+
+    .relatorio-header { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); border-bottom: 2px solid var(--color-primary-light); gap: 12px; flex-wrap: wrap; }
+    .relatorio-header-title { font-size: 14px; font-weight: 700; color: var(--color-neutral-900); }
+    .relatorio-header-meta { font-size: 12px; color: var(--color-neutral-500); margin-top: 3px; }
+    .relatorio-header-meta strong { color: var(--color-neutral-700); }
+
+    .system-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-top: none; box-shadow: var(--shadow-sm); }
+    .system-card:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .system-card-header { padding: 16px 20px; border-bottom: 1px solid var(--color-neutral-100); display: flex; align-items: center; justify-content: space-between; background: var(--color-neutral-50); gap: 12px; }
+    .system-info { display: flex; align-items: center; gap: 12px; }
+    .system-icon { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--color-danger-light); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .system-name { font-size: 15px; font-weight: 700; color: var(--color-neutral-900); }
+    .system-sigla { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; margin-top: 1px; }
+    .system-total { text-align: right; }
+    .system-total-label { font-size: 11px; color: var(--color-neutral-400); font-weight: 500; }
+    .system-total-value { font-size: 20px; font-weight: 700; color: var(--color-danger); }
+    .system-total-unit { font-size: 12px; color: var(--color-neutral-500); font-weight: 500; }
+
+    .periods-table { width: 100%; border-collapse: collapse; }
+    .periods-thead th { padding: 10px 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-neutral-500); background: var(--color-surface); border-bottom: 1px solid var(--color-neutral-100); text-align: left; }
+    .periods-tbody td { padding: 12px 20px; font-size: 13px; color: var(--color-neutral-700); border-bottom: 1px solid var(--color-neutral-100); }
+    .periods-tbody tr:last-child td { border-bottom: none; }
+    .period-time { font-weight: 500; color: var(--color-neutral-900); }
+    .period-duration { display: inline-flex; align-items: center; gap: 4px; background: var(--color-danger-light); color: var(--color-danger); padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+    .no-search, .empty-card { background: var(--color-surface); border: 1px solid var(--color-neutral-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 56px 24px; text-align: center; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--color-neutral-700); margin-bottom: 6px; }
+    .empty-desc { font-size: 13px; color: var(--color-neutral-400); }
+
+    .hidden { display: none !important; }
+
+    /* FOOTER */
+    .footer { text-align: center; font-size: 11px; color: var(--color-neutral-400); padding: 20px; border-top: 1px solid var(--color-neutral-200); background: var(--color-surface); }
+
+    @media (max-width: 900px) {
+      .status-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER PÚBLICO (sem autenticação) -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">TC</div>
+      <div>
+        <div class="header-title">Monitoramento de Indisponibilidade</div>
+        <div class="header-subtitle">TCE-MG — Tribunal de Contas do Estado de Minas Gerais</div>
+      </div>
+    </div>
+    <div class="header-badge"><span class="dot"></span> Acesso público</div>
+  </header>
+
+  <!-- NAVEGAÇÃO — mesmo sistema, duas telas -->
+  <nav class="navbar">
+    <button class="nav-tab active" id="tab-tempo-real" onclick="trocarView('tempo-real')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Acompanhamento em Tempo Real
+    </button>
+    <button class="nav-tab" id="tab-relatorio" onclick="trocarView('relatorio')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Relatório de Limiar
+    </button>
+  </nav>
+
+  <main class="main">
+
+    <!-- ============ VIEW: TEMPO REAL ============ -->
+    <section id="view-tempo-real">
+      <div class="page-header">
+        <div class="page-title">Acompanhamento em Tempo Real</div>
+        <div class="page-desc">Estado atual dos sistemas monitorados pelo Tribunal. Atualização automática a cada minuto.</div>
+      </div>
+
+      <!-- BARRA DE CONTROLE -->
+      <div class="control-bar">
+        <div class="control-left">
+          <div class="refresh-status">
+            <span class="live-dot"></span>
+            <span>Ao vivo — próxima atualização em <span class="countdown" id="countdown">01:00</span></span>
+          </div>
+          <div class="refresh-meta">Última atualização: <strong id="last-update">23/07/2026 14:32:05</strong></div>
+        </div>
+        <div class="control-right">
+          <button class="btn btn-secondary" id="btn-refresh" onclick="atualizarAgora()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Atualizar agora
+          </button>
+          <button class="btn btn-primary" onclick="trocarView('relatorio')">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Relatório de Limiar
+          </button>
+        </div>
+      </div>
+
+      <div class="section-title">Situação por sistema</div>
+      <div class="status-grid">
+
+        <!-- INDISPONÍVEL -->
+        <div class="status-card down">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">🖥️</div>
+                <div><div class="status-sys-name">E-TCE</div><div class="status-sys-sigla">ETCE</div></div>
+              </div>
+              <span class="badge down"><span class="bdot"></span> Indisponível</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card down">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">⚖️</div>
+                <div><div class="status-sys-name">Consulta Processual</div><div class="status-sys-sigla">CPRO</div></div>
+              </div>
+              <span class="badge down"><span class="bdot"></span> Indisponível</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPERACIONAIS -->
+        <div class="status-card ok">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">📄</div>
+                <div><div class="status-sys-name">e-Diário Oficial</div><div class="status-sys-sigla">EDOF</div></div>
+              </div>
+              <span class="badge ok"><span class="bdot"></span> Operacional</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card ok">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">🏛️</div>
+                <div><div class="status-sys-name">Portal do Jurisdicionado</div><div class="status-sys-sigla">PJUR</div></div>
+              </div>
+              <span class="badge ok"><span class="bdot"></span> Operacional</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card ok">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">📊</div>
+                <div><div class="status-sys-name">SICOM</div><div class="status-sys-sigla">SICOM</div></div>
+              </div>
+              <span class="badge ok"><span class="bdot"></span> Operacional</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card ok">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">🔎</div>
+                <div><div class="status-sys-name">Fiscaliza</div><div class="status-sys-sigla">FISC</div></div>
+              </div>
+              <span class="badge ok"><span class="bdot"></span> Operacional</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card ok">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">👥</div>
+                <div><div class="status-sys-name">SIACE</div><div class="status-sys-sigla">SIACE</div></div>
+              </div>
+              <span class="badge ok"><span class="bdot"></span> Operacional</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-card ok">
+          <div class="status-card-body">
+            <div class="status-card-top">
+              <div class="status-sys">
+                <div class="status-sys-icon">💰</div>
+                <div><div class="status-sys-name">Portal da Transparência</div><div class="status-sys-sigla">PTRA</div></div>
+              </div>
+              <span class="badge ok"><span class="bdot"></span> Operacional</span>
+            </div>
+            <div class="status-card-foot">
+              <div class="status-check">🕓 Última verificação: há 12s</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============ VIEW: RELATÓRIO DE LIMIAR ============ -->
+    <section id="view-relatorio" class="hidden">
+      <div class="page-header">
+        <div class="page-title">Relatório de Limiar</div>
+        <div class="page-desc">Sistemas que acumularam mais de 2 horas de indisponibilidade no dia. Disponível a partir do dia seguinte (d-1).</div>
+      </div>
+
+      <!-- BUSCA -->
+      <div class="search-card">
+        <div class="search-card-title">Selecione uma data para consultar</div>
+        <div class="search-row">
+          <div class="form-group">
+            <label class="form-label">Data de referência</label>
+            <input type="date" class="form-input" id="input-data" value="2026-07-22" max="2026-07-22">
+          </div>
+          <button class="btn btn-primary" onclick="consultar()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Consultar
+          </button>
+          <button class="btn btn-secondary" onclick="trocarView('tempo-real')">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Voltar ao tempo real
+          </button>
+        </div>
+      </div>
+
+      <!-- ESTADO INICIAL -->
+      <div class="no-search" id="rel-inicial">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">Selecione uma data para consultar</div>
+        <div class="empty-desc">Os relatórios ficam disponíveis a partir do dia seguinte ao ocorrido.</div>
+      </div>
+
+      <!-- ESTADO RESULTADOS -->
+      <div id="rel-resultados" class="hidden">
+        <div class="relatorio-header">
+          <div>
+            <div class="relatorio-header-title">Sistemas com indisponibilidade acima do limiar em <strong>22 de julho de 2026</strong></div>
+            <div class="relatorio-header-meta">🔒 Código verificador: <strong>0004821</strong> · Limiar: 120 min</div>
+          </div>
+          <a href="relatorio-pdf/relatorio_limiar.pdf" download class="btn btn-success">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Baixar PDF
+          </a>
+        </div>
+
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon">🖥️</div>
+              <div><div class="system-name">E-TCE</div><div class="system-sigla">ETCE</div></div>
+            </div>
+            <div class="system-total">
+              <div class="system-total-label">Total de indisponibilidade</div>
+              <div><span class="system-total-value">185</span> <span class="system-total-unit">minutos</span></div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr><td class="period-time">22/07/2026 09:12</td><td class="period-time">22/07/2026 11:22</td><td><span class="period-duration">⏱ 130 min</span></td></tr>
+              <tr><td class="period-time">22/07/2026 15:40</td><td class="period-time">22/07/2026 16:35</td><td><span class="period-duration">⏱ 55 min</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="system-card">
+          <div class="system-card-header">
+            <div class="system-info">
+              <div class="system-icon">⚖️</div>
+              <div><div class="system-name">Consulta Processual</div><div class="system-sigla">CPRO</div></div>
+            </div>
+            <div class="system-total">
+              <div class="system-total-label">Total de indisponibilidade</div>
+              <div><span class="system-total-value">145</span> <span class="system-total-unit">minutos</span></div>
+            </div>
+          </div>
+          <table class="periods-table">
+            <thead class="periods-thead"><tr><th>Hora de Início</th><th>Hora de Término</th><th>Tempo</th></tr></thead>
+            <tbody class="periods-tbody">
+              <tr><td class="period-time">22/07/2026 09:12</td><td class="period-time">22/07/2026 11:37</td><td><span class="period-duration">⏱ 145 min</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ESTADO SEM INDISPONIBILIDADE -->
+      <div class="empty-card hidden" id="rel-vazio">
+        <div class="empty-icon">✅</div>
+        <div class="empty-title">Nenhum sistema atingiu o limiar</div>
+        <div class="empty-desc">Nenhum sistema acumulou mais de 2 horas de indisponibilidade na data selecionada.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    Sistema de Monitoramento de Indisponibilidade · TCE-MG · Aplicação Pública — acesso sem necessidade de autenticação
+  </footer>
+
+  <script>
+    // Alterna entre as duas telas do mesmo sistema
+    function trocarView(view) {
+      const isTR = view === 'tempo-real';
+      document.getElementById('view-tempo-real').classList.toggle('hidden', !isTR);
+      document.getElementById('view-relatorio').classList.toggle('hidden', isTR);
+      document.getElementById('tab-tempo-real').classList.toggle('active', isTR);
+      document.getElementById('tab-relatorio').classList.toggle('active', !isTR);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ---- Atualização automática a cada minuto + refresh manual ----
+    let restante = 60;
+    const elCountdown = document.getElementById('countdown');
+    const elLast = document.getElementById('last-update');
+
+    function fmt(n) { return String(n).padStart(2, '0'); }
+    function pintarContador() { elCountdown.textContent = '00:' + fmt(restante); }
+
+    function marcarAtualizado() {
+      const d = new Date();
+      elLast.textContent =
+        fmt(d.getDate()) + '/' + fmt(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' +
+        fmt(d.getHours()) + ':' + fmt(d.getMinutes()) + ':' + fmt(d.getSeconds());
+    }
+
+    function atualizarAgora() {
+      const btn = document.getElementById('btn-refresh');
+      btn.classList.remove('spinning'); void btn.offsetWidth; btn.classList.add('spinning');
+      restante = 60;
+      pintarContador();
+      marcarAtualizado();
+    }
+
+    setInterval(() => {
+      restante--;
+      if (restante <= 0) { restante = 60; marcarAtualizado(); }
+      pintarContador();
+    }, 1000);
+    pintarContador();
+
+    // ---- Consulta do relatório de limiar ----
+    function consultar() {
+      document.getElementById('rel-inicial').classList.add('hidden');
+      document.getElementById('rel-vazio').classList.add('hidden');
+      document.getElementById('rel-resultados').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
