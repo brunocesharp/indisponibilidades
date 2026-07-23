@@ -7,10 +7,11 @@
 
 ## Objetivo Central
 
-Antes deste sistema, **não existe nenhuma forma de contabilizar ou comprovar que um sistema esteve indisponível**. O projeto entrega duas transformações principais:
+Antes deste sistema, **não existe nenhuma forma de contabilizar ou comprovar que um sistema esteve indisponível**. O projeto entrega três transformações principais:
 
 - **Usuários (cidadãos)** passam a poder comprovar indisponibilidades para solicitar revisão de prazo processual em petições
 - **Administradores** passam a ter rastreabilidade das indisponibilidades ao longo do dia para tomada de decisão e auditoria
+- **Administradores** têm acesso a uma página de acompanhamento em tempo real dos sistemas monitorados, com refresh automático e manual, recebendo dados diretamente do banco de dados do monitoramento
 
 ---
 
@@ -47,15 +48,16 @@ Esta métrica captura o valor central do sistema: de nada adianta detectar uma i
 
 | # | Métrica | Descrição | Baseline | Meta | Responsável |
 |---|---------|-----------|----------|------|-------------|
-| P1 | Sistemas com healthcheck implementado | Nº de sistemas que implementaram o endpoint de healthcheck (.NET ou Java) | 0 | 100% dos sistemas cadastrados | Times de Dev + Equipe de Arquitetura |
-| P2 | Usuários que acessaram relatórios | Nº de usuários únicos que consultaram pelo menos 1 relatório no mês | 0 | A definir após 1 mês de operação | Equipe Portal de Serviços |
+| P1 | Acessos à página de acompanhamento em tempo real | Nº de acessos à página administrativa de monitoramento em tempo real por mês | 0 | A definir após 1 mês de operação | Equipe Portal de Serviços |
+| P2 | Sistemas com healthcheck implementado | Nº de sistemas que implementaram o endpoint de healthcheck (.NET ou Java) | 0 | 100% dos sistemas cadastrados | Times de Dev + Equipe de Arquitetura |
+| P3 | Usuários que acessaram relatórios | Nº de usuários únicos que consultaram pelo menos 1 relatório no mês | 0 | A definir após 1 mês de operação | Equipe Portal de Serviços |
 
 ### Engajamento
 
 | # | Métrica | Descrição | Baseline | Meta | Responsável |
 |---|---------|-----------|----------|------|-------------|
-| P3 | Relatórios consultados por busca de data | Nº de consultas de relatórios por data realizadas por mês | 0 | A definir após 1 mês de operação | Equipe Portal de Serviços |
-| P4 | Petições com relatório de indisponibilidade anexado | Nº de petições que usaram relatório como comprovação de indisponibilidade | 0 | A definir após 1 mês de operação — indica adoção real pelos cidadãos | Tribunal |
+| P4 | Relatórios consultados por busca de data | Nº de consultas de relatórios por data realizadas por mês | 0 | A definir após 1 mês de operação | Equipe Portal de Serviços |
+| P5 | Petições com relatório de indisponibilidade anexado | Nº de petições que usaram relatório como comprovação de indisponibilidade | 0 | A definir após 1 mês de operação — indica adoção real pelos cidadãos | Tribunal |
 
 ### Confiabilidade (Task Success)
 
@@ -73,6 +75,8 @@ Esta métrica captura o valor central do sistema: de nada adianta detectar uma i
 | T1 | Tempo de detecção de indisponibilidade | Tempo máximo entre início da indisponibilidade e primeiro registro | ≤ 1 minuto | Equipe de Infra |
 | T2 | Disponibilidade do próprio sistema de monitoramento | Uptime do sistema | Toda indisponibilidade > 1 min do sistema de monitoramento é contabilizada como falha crítica | Equipe de Infra |
 | T3 | Tempo de geração do relatório diário | Tempo máximo para gerar o relatório diário do Administrador | Gerado até 00h05 (5 min de tolerância) | Equipe de desenvolvimento |
+| T4 | Tempo de atualização da página em tempo real | Tempo máximo entre atualização automática e novos dados exibidos | ≤ 1 minuto | Equipe de desenvolvimento |
+| T5 | Funcionamento do botão de refresh manual | O botão de atualizar recarrega os dados atuais sem erros | 100% | Equipe de desenvolvimento |
 
 ---
 
@@ -82,7 +86,13 @@ Estes critérios devem ser atendidos antes do lançamento:
 
 - [ ] 100% dos sistemas cadastrados no Portal estão sendo monitorados
 - [ ] Relatório diário do Administrador gerado corretamente em ambiente de homologação por pelo menos 5 dias consecutivos
-- [ ] Relatório por limiar (2h) gerado corretamente ao simular indisponibilidade em ambiente de homologação
+- [ ] Página de acompanhamento em tempo real exibindo os dados do banco de dados do monitoramento de indisponibilidade
+- [ ] Página de acompanhamento em tempo real atualizada automaticamente a cada minuto
+- [ ] Botão de atualização manual funcionando na página de acompanhamento em tempo real
+- [ ] Botão de navegação para a tela de relatório do usuário disponível na página de acompanhamento em tempo real
+- [ ] Tela de acesso ao relatório do usuário acessível sem autenticação
+- [ ] Página de acompanhamento em tempo real e a tela de relatório do usuário hospedadas em um único sistema, separada da aplicação administrativa do Portal de Serviços
+- [ ] Relatório por limiar (2h) gerado na madrugada do dia posterior ao evento
 - [ ] QR Code de validação funcionando em 100% dos relatórios gerados
 - [ ] Tempo de detecção de indisponibilidade ≤ 1 minuto confirmado em testes
 - [ ] Hierarquia de serviços propagando indisponibilidade corretamente nos testes
@@ -106,10 +116,10 @@ Estes critérios devem ser atendidos antes do lançamento:
 
 | Área | Métricas sob responsabilidade |
 |------|-------------------------------|
-| Equipe de desenvolvimento do Portal de Serviços | North Star, N2, N4, P2, P3, P5, P6, T3 |
+| Equipe de desenvolvimento do Portal de Serviços | North Star, N2, N4, P1, P2, P3, P4, P5, P6, T3 |
 | Equipe de Infraestrutura | N1, N3, T1, T2 |
 | Times de Desenvolvimento (.NET e Java) | P1 |
-| Tribunal | P4 (petições com relatório anexado) |
+| Tribunal | P5 (petições com relatório anexado) |
 
 ---
 

@@ -65,8 +65,9 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 | Aspecto | Detalhe |
 |---------|---------|
 | **O que faz** | Gera relatório quando um sistema acumula mais de **2 horas** de indisponibilidade no dia |
-| **Destinatário** | Usuários que acessam o Portal de Serviços |
-| **Canal** | Página de relatórios dentro do Portal de Serviços |
+| **Horário de geração** | Relatório gerado na madrugada do dia posterior ao evento |
+| **Destinatário** | Usuários finais |
+| **Canal** | Página de relatórios no sistema de monitoramento de indisponibilidade, acessível sem autenticação |
 | **Autenticidade** | Relatório com QR Code para validação de autenticidade |
 
 ---
@@ -83,18 +84,30 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 
 ---
 
-### 5. Consulta de Relatórios do Usuário
+### 5. Página de Acompanhamento em Tempo Real
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **O que faz** | Exibe o estado atual das aplicações cadastradas no monitoramento de indisponibilidade, com dados extraídos do banco de dados do sistema |
+| **Atualização automática** | Atualiza automaticamente a cada minuto |
+| **Refresh manual** | Possui botão de atualizar acionado manualmente pelo usuário |
+| **Navegação** | Inclui botão de acesso à tela de relatório do usuário |
+| **Publicação** | Está em um único sistema, permitindo publicação única e separada da aplicação administrativa do Portal de Serviços |
+
+---
+
+### 6. Consulta de Relatórios do Usuário
 
 | Aspecto | Detalhe |
 |---------|---------|
 | **O que faz** | Permite ao Usuário buscar o relatório por limiar por data |
-| **Tela** | Projeto separado, publicado e implantado de forma independente das demais telas — acesso mais direto possível e menor risco de indisponibilidade |
-| **Acesso** | Requer autenticação no Portal de Serviços |
+| **Tela** | Parte do mesmo sistema do monitoramento em tempo real, publicado e implantado de forma única, separado da aplicação administrativa do Portal de Serviços |
+| **Acesso** | Não requer autenticação |
 | **Conteúdo** | Sistemas que atingiram o limiar no dia (sem hierarquia) |
 
 ---
 
-### 6. Consulta de Relatórios do Administrador
+### 7. Consulta de Relatórios do Administrador
 
 | Aspecto | Detalhe |
 |---------|---------|
@@ -105,7 +118,7 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 
 ---
 
-### 7. Gerenciamento de Serviços (Administrador)
+### 8. Gerenciamento de Serviços (Administrador)
 
 | Aspecto | Detalhe |
 |---------|---------|

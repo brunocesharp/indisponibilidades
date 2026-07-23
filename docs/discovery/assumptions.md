@@ -30,6 +30,8 @@ Classificação por dois eixos:
 | U2 | Os Administradores aceitarão receber notificações por e-mail quando ocorrer indisponibilidade | Médio — se não aceitarem, o canal de alerta perde efetividade | ✅ **Validada** | ✅ VALIDADA | Todos os Administradores possuem conta AD da rede interna do tribunal e estão habilitados a receber e-mails dos sistemas do tribunal |
 | U3 | Os Usuários vão consultar os relatórios proativamente por data, sem necessidade de notificação ativa | Médio — se precisarem de notificação, o modelo atual é insuficiente | Média — inferido da descrição do sistema | 👀 Monitorar | Observar uso após lançamento |
 | U4 | Os relatórios com QR Code de validação são suficientes para atender a exigência do Tribunal | Alto — se o Tribunal exigir outro formato, os relatórios precisarão ser reformulados | Baixa — não confirmado formalmente com o Tribunal | ⚠️ VALIDAR PRIMEIRO | Validar o formato do relatório com o Tribunal antes do desenvolvimento |
+| U5 | A nova página de acompanhamento em tempo real exibirá dados do banco de dados do monitoramento de indisponibilidade no mesmo sistema | Alto — sem essa página, a visibilidade operacional imediata ficará incompleta | Baixa — ainda não detalhado com arquitetura e produto | ⚠️ VALIDAR PRIMEIRO | Confirmar com arquitetura e produto se o sistema único suporta publicação e acesso separados |
+| U6 | A navegação da página em tempo real para a tela de relatório do usuário pode ser oferecida sem exigir autenticação | Alto — isso afeta o desenho de acesso e a usabilidade da solução | Média — exigência funcional sugerida, mas não totalmente confirmada | ⚠️ VALIDAR PRIMEIRO | Validar com o time do Portal de Serviços e de segurança se a rota sem autenticação é permitida |
 
 ---
 
@@ -53,6 +55,8 @@ Classificação por dois eixos:
 | T4 | O formato de resposta do Spring Boot Actuator (`/actuator/health`) é compatível com o que o sistema espera dos endpoints de healthcheck | Alto — se os formatos forem incompatíveis, será necessário um adaptador | Média — ambos seguem padrões abertos, mas podem ter diferenças | ⚠️ VALIDAR PRIMEIRO | Fazer spike técnico comparando os formatos de resposta de ambas as bibliotecas |
 | T5 | A camada de integração com ferramentas de observabilidade (ex: Prometheus) pode ser desacoplada do core do sistema, permitindo trocar a tecnologia sem impacto | Alto — se houver acoplamento forte, qualquer troca de ferramenta exige refatoração ampla | Média — depende das decisões arquiteturais do time | ✅ Confirmar e seguir | Definir a arquitetura com interface/adapter para a camada de métricas no início do projeto |
 | T6 | O token de autenticação do Portal de Serviços carrega as informações de tipo de usuário necessárias (Administrador ou Usuário) de forma legível pelo sistema | Alto — se o token não carregar essa informação, não é possível diferenciar o tipo de relatório | ✅ **Validada** | ✅ VALIDADA | A claim `listaGruposSistema` com valor `PRT_SRV_ADMINISTRADORES` identifica o Administrador de Sistemas |
+| T7 | Os dados de indisponibilidade são persistidos no banco de dados e podem ser usados para a página de acompanhamento em tempo real | Alto — sem persistência e consulta confiáveis, o dashboard em tempo real não funciona | Média — depende do modelo de dados e da API de consulta | ⚠️ VALIDAR PRIMEIRO | Validar o modelo de persistência e os contratos de leitura com o backend |
+| T8 | A atualização automática a cada minuto na página em tempo real é viável sem causar impacto significativo de performance | Médio — uma cadência muito alta pode impactar infraestrutura e experiência | Baixa — só pode ser confirmada com protótipo operacional | 👀 Monitorar | Prototipar o refresh periódico e medir o consumo de recursos |
 
 ---
 
@@ -63,8 +67,11 @@ Classificação por dois eixos:
 | # | Hipótese | Responsável sugerido |
 |---|----------|----------------------|
 | U4 | Formato do relatório (QR Code) aceito pelo Tribunal | Jurídico / Representante do Tribunal |
+| U5 | Página de acompanhamento em tempo real no mesmo sistema | Arquitetura / Produto |
+| U6 | Navegação sem autenticação para a tela de relatório do usuário | Portal / Segurança |
 | N1 | Conformidade com a minuta do Tribunal | Jurídico / Representante do Tribunal |
 | T4 | Compatibilidade entre formatos ASP.NET HealthChecks e Spring Boot Actuator | Spike técnico |
+| T7 | Persistência e consulta dos dados de monitoramento em tempo real | Backend / Arquitetura |
 
 ### ✅ Validadas
 
@@ -85,6 +92,7 @@ Classificação por dois eixos:
 |---|----------|
 | U3 | Consulta proativa de relatórios pelos Usuários |
 | N3 | E-mail como canal suficiente para os Administradores |
+| T8 | Viabilidade de refresh automático a cada minuto na página em tempo real |
 
 ---
 
@@ -93,3 +101,4 @@ Classificação por dois eixos:
 - **Stakeholders** — identificar os times e pessoas que podem validar as hipóteses críticas (Portal de Serviços, times .NET e Java, representante do Tribunal)
 - **Métricas** — definir indicadores de conformidade com o Tribunal
 - **Spike técnico** — comparar formatos de resposta de `Microsoft.Extensions.Diagnostics.HealthChecks` e `Spring Boot Actuator` (hipótese T4)
+- **Validação de experiência** — confirmar a arquitetura do dashboard em tempo real, o refresh a cada minuto e o acesso sem autenticação à tela de relatório do usuário

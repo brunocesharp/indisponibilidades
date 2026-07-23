@@ -36,7 +36,8 @@ O sistema centraliza o monitoramento de saúde das aplicações via endpoints de
 |---------|-----------|
 | **Transformação esperada** | Substituição do monitoramento manual/inexistente por rastreamento automatizado com relatórios gerados sem intervenção humana |
 | **Diferencial** | Hierarquia entre serviços elimina falsos positivos — se o serviço pai cai, os filhos não são contabilizados como indisponíveis independentemente |
-| **Frase de elevador** | "Monitora automaticamente a saúde de todos os sistemas, elimina falsos positivos por hierarquia e gera relatórios de indisponibilidade para conformidade com o Tribunal" |
+| **Diferencial adicional** | Uma nova página administrativa exibe o status em tempo real dos sistemas cadastrados, atualiza a cada minuto e permite refresh manual |
+| **Frase de elevador** | "Monitora automaticamente a saúde de todos os sistemas, elimina falsos positivos por hierarquia, oferece monitoramento em tempo real e gera relatórios de indisponibilidade para conformidade com o Tribunal" |
 
 ---
 
@@ -67,7 +68,9 @@ O projeto está sendo executado agora por exigência regulatória. O Tribunal el
 ## Regras de Negócio Centrais
 
 - **Monitoramento contínuo diário:** O sistema verifica os endpoints de healthcheck periodicamente e acumula os períodos de indisponibilidade ao longo do dia.
-- **Relatório por limiar:** Se um sistema acumular mais de **2 horas** de indisponibilidade no dia, um relatório é gerado e enviado ao usuário responsável.
+- **Página de acompanhamento em tempo real:** Deve existir uma nova página administrativa no mesmo sistema que exibe os dados armazenados no banco de dados do monitoramento de indisponibilidade, atualiza automaticamente a cada minuto e oferece um botão para refresh manual.
+- **Acesso ao relatório do usuário:** A página de acompanhamento em tempo real deve permitir acesso sem autenticação e ter um botão de navegação para a tela de relatório do usuário.
+- **Relatório por limiar:** Se um sistema acumular mais de **2 horas** de indisponibilidade no dia, um relatório é gerado e enviado ao usuário responsável. O relatório é gerado na madrugada do dia posterior.
 - **Relatório diário do administrador:** Ao final de cada dia, um relatório completo com todas as indisponibilidades é gerado automaticamente para o Administrador.
 - **Hierarquia de serviços:** Quando um serviço pai está indisponível, os serviços filhos na hierarquia **também** são contabilizados como indisponíveis — o serviço mais alto da cadeia é considerado o início da falha.
 - **Cadastro de serviços:** Novos sistemas são cadastrados com sigla, nome e endpoint de healthcheck, podendo ser vinculados a uma hierarquia existente.
@@ -84,6 +87,8 @@ O projeto está sendo executado agora por exigência regulatória. O Tribunal el
 
 - [x] Frequência exata das verificações de healthcheck — padrão **1 minuto**, configurável via arquivo de configuração da aplicação
 - [x] Canal de entrega dos relatórios — página dentro do **Portal de Serviços**, acessível mediante login; o tipo de relatório exibido é determinado pelo tipo de usuário identificado via **token de autenticação**
+- [x] Inclusão de uma nova página de monitoramento em tempo real no mesmo sistema, com atualização automática a cada minuto, refresh manual e botão de acesso à tela de relatório do usuário
+- [x] Tela de acesso ao relatório para usuários deve permitir acesso sem autenticação
 - [x] Profundidade máxima da hierarquia de serviços — **sem limite de níveis**
 - [x] Critério de "fim do dia" para o relatório do administrador — padrão **meia-noite**, configurável via arquivo de configuração
 - [x] Identificação do "usuário responsável" — **não é responsabilidade deste sistema**; a lista de sistemas é obtida via endpoint externo; o sistema não gerencia cadastro de usuários
