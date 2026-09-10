@@ -1,6 +1,6 @@
 # Modelo de Dados — Monitoramento de Indisponibilidade
 
-> Gerado em: 20/07/2026 | Versão: 1.1
+> Gerado em: 20/07/2026 | Atualizado em: 10/09/2026 | Versão: 1.2
 > Schema: USU_INDISPONIBILIDADE | Tablespace Dados: USU_INDISPONIBILIDADE_D | Índices: USU_INDISPONIBILIDADE_I
 > Referências: `docs/especificacao/escopo-geral/spec-functional.md`, `docs/escopo/escopo-geral/escopo.md`
 > Normas: Administração de Dados TCE-MG v1.2
@@ -15,6 +15,7 @@
 - Um serviço pode ter **múltiplos pais e múltiplos filhos** (RN-1.4, RN-3.2) → relacionamento N:M autorrelacionado resolvido pela tabela associativa `HIERARQUIA_SERVICO`.
 - Inativação **remove** os vínculos e reativação pode **restaurá-los** (RN-1.6, RN-1.7) → vínculo usa *soft delete* (`IND_ATIVO`) para preservar a hierarquia anterior; a **remoção** definitiva (RN-1.8) apaga fisicamente os vínculos.
 - Histórico de indisponibilidades é **sempre mantido** (RN-1.6, RN-1.8) — nunca apagado ao inativar/remover serviço.
+- O `COD_VERIFICADOR` de `RELATORIO` (tipo L) é reutilizado como chave de consulta pública da funcionalidade de **Validação de Autenticidade** (rota `/autenticar`, escopo §9) — não existe um "número do relatório" separado do código verificador; o `ID_RELATORIO` (PK interna) não é exposto publicamente nem usado como identificador de consulta.
 
 ### Bloco de Auditoria (obrigatório em toda tabela de negócio)
 
@@ -206,3 +207,6 @@ erDiagram
 - [ ] **Retenção/particionamento de INDISPONIBILIDADE e LOG_SERVICO_MONITORADO** — avaliar particionamento RANGE por mês caso o volume histórico cresça para dezenas de milhões de registros.
 - [ ] **UK de RELATORIO por (DAT_REFERENCIA, SGL_TIPO)** para o relatório fechado — decidir política quando há regeração de parciais no mesmo dia.
 - [ ] **CPF como NUMBER(11)** — segue o exemplo `NUM_CPF_CNPJ` das normas TCE-MG; a formatação com zeros à esquerda é responsabilidade da aplicação. Avaliar com a AD se preferem `VARCHAR2(11)`.
+- [ ] **Validação de autenticidade do Relatório Diário do Administrador (tipo A)** — o escopo §4 menciona QR Code de autenticidade também para esse tipo, mas RN-5.4 define que apenas o tipo L possui `COD_VERIFICADOR`. Se confirmado que o tipo A também deve ser autenticável via `/autenticar` (hipótese U6 do escopo), remover a restrição `SGL_TIPO='L'` da UK/regra de preenchimento de `COD_VERIFICADOR`.
+- [ ] **Formato/algoritmo do `COD_VERIFICADOR`** — hoje não há um gerador formalmente definido (o protótipo de PDF usa um exemplo sequencial simples, `0000001`). Como o código passa a ser consultável publicamente via `/autenticar`, avaliar geração não-sequencial (ex.: aleatório/hash) para reduzir risco de adivinhação (hipótese U5 do escopo).
+- [ ] **Auditoria/rate limiting das consultas em `/autenticar`** — avaliar se tentativas de validação (principalmente as inválidas) devem ser registradas para mitigar tentativas de força bruta sobre o código verificador.
