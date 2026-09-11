@@ -9,7 +9,7 @@
 | **Autor** | Bruno |
 | **Data** | 2026-07-23 |
 | **Status** | Rascunho |
-| **Versão** | 1.1 |
+| **Versão** | 1.3 |
 
 ---
 
@@ -20,7 +20,7 @@ Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verifica�
 
 ### Escopo
 
-**Incluído (7 features da spec + página de tempo real do escopo):**
+**Incluído (8 features da spec + página de tempo real do escopo):**
 - F1 — Gerenciamento de Serviços Monitorados (CRUD + ciclo de vida)
 - F2 — Monitoramento de Healthcheck (worker + buffer + persistência)
 - F3 — Hierarquia de Serviços (vínculos N:M + exibição em relatórios)
@@ -28,6 +28,7 @@ Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verifica�
 - F5 — Relatório Diário do Administrador (+ parcial sob demanda)
 - F6 — Consulta de Relatórios do Usuário — parte da **Aplicação Pública** (DMZ, sem autenticação)
 - F7 — Consulta de Relatórios do Administrador
+- F8 — Validação de Autenticidade do Relatório (`/autenticar`) — consulta pública por código verificador, para Usuário e Administrador, parte da **Aplicação Pública** (DMZ, sem autenticação)
 - **Página de Acompanhamento em Tempo Real** (escopo §5) — parte da **Aplicação Pública**: estado atual das aplicações a partir do banco, atualização automática a cada minuto, botão de refresh manual e navegação para a consulta do Usuário
 
 **Não incluído (fora do escopo — spec/escopo):**
@@ -58,13 +59,13 @@ Implementar o sistema de Monitoramento de Indisponibilidade do TCE-MG: verifica�
 | 1 | Gerenciamento de Serviços | F1, F3 (vínculos) | CRUD + ciclo de vida + integração inventário Portal + tela admin | ~13d | Entrega 0 |
 | 2 | Monitoramento de Healthcheck | F2, F3 (independência) | Worker de verificação, buffer em memória, persistência de períodos | ~8d | Entrega 1 |
 | 3 | Geração de Relatórios | F4, F5 | Jobs diários, relatório por limiar + diário admin, PDF/QR, parcial | ~9d | Entrega 2 |
-| 4 | Aplicação Pública (Tempo Real + Consulta Usuário) | F6 + Tempo Real | App Angular independente em DMZ, sem autenticação: página de tempo real (auto-refresh 1 min + botão manual) + consulta d-1 + download PDF, via endpoints anônimos | ~7d | Entrega 3 |
+| 4 | Aplicação Pública (Tempo Real + Consulta Usuário + Autenticação) | F6, F8 + Tempo Real | App Angular independente em DMZ, sem autenticação: página de tempo real (auto-refresh 1 min + botão manual) + consulta d-1 + download PDF + validação de autenticidade (`/autenticar`, com rate limiting), via endpoints anônimos | ~11d | Entrega 3 |
 | 5 | Consulta do Administrador | F7 | Tela admin de consulta + hierarquia + relatório parcial | ~4d | Entrega 3 |
 | 6 | Homologação e Produção | — | Deploy API+Worker + Portal Admin (interno) + Aplicação Pública (DMZ), validação go-live, produção | ~3d | Entregas 1-5 |
 
-**Estimativa Total:** ~50 dias (~281h)
-**Buffer (20%):** ~10 dias
-**Total com Buffer:** ~60 dias (~12 semanas com 1 dev)
+**Estimativa Total:** ~54 dias (~306.5h)
+**Buffer (20%):** ~11 dias
+**Total com Buffer:** ~65 dias (~13 semanas com 1 dev)
 
 > Entregas 4 e 5 são independentes entre si (ambas dependem só da Entrega 3) e podem ser reordenadas.
 
@@ -306,10 +307,10 @@ Ao final do dia (meia-noite configurável), gerar automaticamente o relatório p
 
 ---
 
-## Entrega 4: Aplicação Pública — Tempo Real + Consulta do Usuário (F6 + Página de Tempo Real)
+## Entrega 4: Aplicação Pública — Tempo Real + Consulta do Usuário + Validação de Autenticidade (F6, F8 + Página de Tempo Real)
 
 ### Objetivo
-Entregar a **Aplicação Pública**: app Angular independente, publicado em rede isolada (DMZ) com deploy próprio e **acesso sem autenticação**, para usuários externos ao tribunal. Reúne (a) a página de acompanhamento em tempo real das aplicações monitoradas — estado atual a partir do banco, atualização automática a cada minuto e botão de refresh manual — e (b) a consulta do relatório por limiar por data, com download de PDF. Navegação entre as duas telas via botão. Consumo via endpoints anônimos.
+Entregar a **Aplicação Pública**: app Angular independente, publicado em rede isolada (DMZ) com deploy próprio e **acesso sem autenticação**, para usuários externos ao tribunal. Reúne (a) a página de acompanhamento em tempo real das aplicações monitoradas — estado atual a partir do banco, atualização automática a cada minuto e botão de refresh manual —, (b) a consulta do relatório por limiar por data, com download de PDF, e (c) a validação de autenticidade de um relatório por limiar via rota `/autenticar`, informando o código verificador (manualmente ou pelo link do QR Code), disponível tanto ao Usuário quanto ao Administrador. Navegação entre as telas via botão. Consumo via endpoints anônimos.
 
 ### Tarefas
 
@@ -319,6 +320,10 @@ Entregar a **Aplicação Pública**: app Angular independente, publicado em rede
 | 4.1 | [TASK] Desenvolver - [RELATORIO] - Criar `GetRelatorioLimiarPorDataQuery` (d-1; futura/atual → indisponível) | Query | `dotnet-application-feature` | 3h |
 | 4.2 | [TASK] Desenvolver - [MONITOR] - Criar `GetStatusTempoRealQuery` (estado atual das aplicações monitoradas a partir do banco) | Query | `dotnet-application-feature` | 3h |
 | 4.3 | [TASK] Desenvolver - [PUBLICO] - Criar endpoints **anônimos** da Aplicação Pública (consulta d-1 + download PDF + status tempo real) | Controller | `dotnet-endpoint-generator` | 4h |
+| 4.12 | [TASK] Desenvolver - [RELATORIO] - Criar `RelatorioAutenticacaoDto` (data de referência, sistemas com períodos e indisponibilidade total do dia) | DTO | `dotnet-application-feature` | 1h |
+| 4.13 | [TASK] Desenvolver - [RELATORIO] - Criar `AutenticarRelatorioQuery` + Handler (busca relatório `SGL_TIPO='L'` por `COD_VERIFICADOR` — reaproveita o VO `CodigoVerificador` da Entrega 3; retorna o DTO se encontrado, ou resultado "não localizado" sem detalhar o motivo) | Query | `dotnet-application-feature` | 3h |
+| 4.14 | [HT] [PUBLICO] - Configurar rate limiting no endpoint de autenticação (10 tentativas malsucedidas/minuto por IP; bloqueio de 5 min ao exceder) | Infrastructure | - | 3h |
+| 4.15 | [TASK] Desenvolver - [PUBLICO] - Criar endpoint **anônimo** `GET /relatorios/autenticar?verificador=...` + request validator (código verificador obrigatório) | Controller/Validator | `dotnet-endpoint-generator` | 3h |
 
 #### Frontend — Aplicação Pública (independente, DMZ, sem autenticação)
 | ID | Título do Item | Tipo | Est. |
@@ -329,20 +334,26 @@ Entregar a **Aplicação Pública**: app Angular independente, publicado em rede
 | 4.7 | [TASK] Desenvolver - [PUBLICO] - Criar `StatusTempoRealComponent` (Presentational, OnPush: cards/tabela de status) | Component | 3h |
 | 4.8 | [TASK] Desenvolver - [PUBLICO] - Criar `ConsultaRelatorioComponent` (Smart: seletor de data, mensagens de ausência/data inválida) | Component | 4h |
 | 4.9 | [TASK] Desenvolver - [PUBLICO] - Criar `RelatorioViewComponent` (Presentational + botão "Baixar PDF") | Component | 3h |
+| 4.16 | [TASK] Desenvolver - [PUBLICO] - Criar model `AutenticacaoRelatorio` (TS, espelha `RelatorioAutenticacaoDto`) | Model | 0.5h |
+| 4.17 | [TASK] Desenvolver - [PUBLICO] - Criar `AutenticacaoService` (HttpClient: GET por código verificador) | Service | 2h |
+| 4.18 | [TASK] Desenvolver - [PUBLICO] - Criar rota `/autenticar` (**sem AuthGuard**) + `AutenticacaoComponent` (Smart: formulário manual do código verificador, leitura do parâmetro `verificador` da querystring quando vindo do QR Code — `usuario` é ignorado —, exibe resumo do relatório se válido, mensagem de "não localizado" se inválido, ou de bloqueio temporário após excesso de tentativas) | Component/Routing | 5h |
 
 #### Testes
 | ID | Título do Item | Tipo | Est. |
 |----|----------------|------|------|
 | 4.10 | [TASK] Testar - [PUBLICO] - Testes unitários services + components (datas, ausência, download, polling/refresh manual) | Unit (Angular) | 5h |
 | 4.11 | [TASK] Testar - [RELATORIO] - Testes de integração das queries (por data + status tempo real) | Integration | 3h |
+| 4.19 | [TASK] Testar - [RELATORIO] - Testes unitários do Handler `AutenticarRelatorioQuery` (código válido, inválido/inexistente, relatório tipo A) | Unit (.NET) | 2h |
+| 4.20 | [TASK] Testar - [PUBLICO] - Testes de integração do endpoint de autenticação, incluindo rate limiting (10ª tentativa OK, 11ª bloqueada, liberação após 5 min) | Integration | 3h |
+| 4.21 | [TASK] Testar - [PUBLICO] - Testes unitários `AutenticacaoService`/`AutenticacaoComponent` (querystring do QR Code, formulário vazio, mensagem de bloqueio) | Unit (Angular) | 3h |
 
 ### Subtotal Entrega 4
 | Categoria | Estimativa |
 |-----------|------------|
-| Backend | 10h |
-| Frontend | 20h |
-| Testes | 8h |
-| **Total** | **38h (~7 dias)** |
+| Backend | 20h |
+| Frontend | 27.5h |
+| Testes | 16h |
+| **Total** | **63.5h (~11 dias)** |
 
 ### Critérios de Aceite
 - [ ] Consulta d-1 exibe só sistemas do limiar, sem hierarquia; data sem indisponibilidade mostra mensagem (Cenários 6.1-6.2).
@@ -351,6 +362,9 @@ Entregar a **Aplicação Pública**: app Angular independente, publicado em rede
 - [ ] Botão "Baixar PDF" disponível no relatório d-1 concluído (Cenário 6.6).
 - [ ] Página de tempo real exibe o estado atual das aplicações a partir do banco, atualiza automaticamente a cada minuto e possui botão de refresh manual (escopo §5).
 - [ ] Aplicação Pública publicada/deployável de forma independente em rede isolada (DMZ) (RN-6.1, RN-6.8).
+- [ ] `/autenticar` retorna o resumo do relatório para código verificador válido (tipo L) e mensagem de "não localizado" para código inválido/inexistente ou correspondente a relatório tipo A (escopo §9).
+- [ ] Acesso via QR Code preenche automaticamente o código verificador a partir da querystring; acesso direto permite digitação manual do código (escopo §9).
+- [ ] Rate limiting bloqueia a 11ª tentativa malsucedida em 1 minuto do mesmo IP por 5 minutos, com mensagem informando o bloqueio (RN-8.7).
 
 ---
 
@@ -438,7 +452,7 @@ gantt
     Entrega 2 - Healthcheck Worker      :e2, after e1, 8d
     section Relatórios
     Entrega 3 - Geração de Relatórios   :e3, after e2, 9d
-    Entrega 4 - App Pública (Tempo Real + Consulta) :e4, after e3, 7d
+    Entrega 4 - App Pública (Tempo Real + Consulta + Autenticação) :e4, after e3, 11d
     Entrega 5 - Consulta Administrador  :e5, after e4, 4d
     section Deploy
     Entrega 6 - Homolog + Produção      :e6, after e5, 3d
@@ -458,6 +472,7 @@ gantt
 | 1 dev = caminho crítico longo (~12 semanas) | Alta | Médio | Entregas 4 e 5 reordenáveis; possível paralelizar se entrar 2º dev |
 | Publicação em rede isolada (DMZ) da Aplicação Pública não liberada a tempo | Média | Alto | Envolver Segurança/Infra cedo; validar topologia de rede e exposição externa antes da Entrega 4 |
 | Endpoints anônimos da Aplicação Pública expondo dados além do necessário | Baixa | Alto | Restringir endpoints públicos apenas a status de tempo real e relatório por limiar; sem dados administrativos/hierarquia |
+| Código verificador sujeito a tentativa de adivinhação (força bruta) na rota pública `/autenticar` | Média | Médio | Rate limiting implementado na tarefa 4.14 (10 tentativas/min por IP); ainda depende de definir formato não-sequencial/suficientemente longo do código verificador (hipótese U5 do escopo) para reduzir o espaço de busca |
 
 ---
 
@@ -489,3 +504,5 @@ gantt
 |--------|------|-------|-----------|
 | 1.0 | 2026-07-20 | Bruno / Claude | Versão inicial — 7 features em 7 entregas (0-6), 1 dev fullstack, BehaviorSubject |
 | 1.1 | 2026-07-23 | Bruno / Claude | Aplicação Pública em rede isolada (DMZ) sem autenticação; Entrega 4 reestruturada para incluir a página de acompanhamento em tempo real (escopo §5); F6 sem login; ajustes em Entregas 0 e 6, riscos, dependências e totais (~281h / ~60 dias) |
+| 1.2 | 2026-09-10 | Bruno / Claude | Adicionada F8 — Validação de Autenticidade do Relatório (`/autenticar`), consulta pública por código verificador (Usuário e Administrador) na Entrega 4; novas tarefas 4.12-4.15, risco de força bruta sobre o código verificador, critérios de aceite e ajuste de estimativas (~296h / ~62 dias) |
+| 1.3 | 2026-09-11 | Bruno / Claude | Plano de execução completo da F8 gerado por camada a partir do `spec-functional.md`: tarefas 4.12-4.15 substituídas por um conjunto em camadas (4.12-4.21) — DTO, Query/Handler reaproveitando o VO `CodigoVerificador` da Entrega 3, HT de rate limiting (10 tentativas/min por IP), endpoint + validator, model/service/component Angular e testes unitários/integração dedicados; estimativas e cronograma da Entrega 4 ajustados (~9d→~11d; total ~296h/~62d → ~306.5h/~65d) |

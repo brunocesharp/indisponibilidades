@@ -1,11 +1,12 @@
 # Escopo Geral — Monitoramento de Indisponibilidade
 
 > Gerado em: 26/06/2026
-> Atualizado em: 23/07/2026
-> Versão: 1.2
+> Atualizado em: 10/09/2026
+> Versão: 1.3
 > Situação: **Rascunho**
 > Repositório: https://github.com/brunocesharp/indisponibilidades
 >
+> **Alterações v1.3:** nova funcionalidade de **Validação de Autenticidade do Relatório** (rota `/autenticar`) — consulta pública, sem autenticação, disponível tanto ao Usuário quanto ao Administrador, que confirma a veracidade de um relatório por limiar a partir do código verificador impresso/QR Code (Seção 9).
 > **Alterações v1.2:** definição da arquitetura de implantação em duas aplicações independentes — Aplicação Pública (tempo real + relatório do usuário) com deploy próprio em rede isolada (DMZ) para exposição a usuários externos ao tribunal, e Aplicação Administrativa na rede interna.
 > **Alterações v1.1:** revisão do Monitoramento de Indisponibilidade — página de acompanhamento em tempo real (dados do banco, atualização automática a cada minuto, refresh manual, sistema único com publicação separada, botão de acesso à tela de relatório do usuário), tela de relatório do usuário sem autenticação e relatório por limiar de 2h gerado na madrugada do dia posterior. Entrega do relatório por limiar mantida como página pública sem autenticação (sem envio ativo).
 
@@ -134,13 +135,28 @@ A organização não possui nenhuma forma de contabilizar ou comprovar que um si
 
 ---
 
+### 9. Validação de Autenticidade do Relatório (/autenticar)
+
+| Aspecto | Detalhe |
+|---------|---------|
+| **O que faz** | Permite a qualquer pessoa — Usuário (cidadão) ou Administrador — confirmar se um relatório de indisponibilidade é autêntico, informando o código verificador impresso no documento |
+| **Tela/Rota** | `/autenticar`, parte da **Aplicação Pública** — mesma aplicação sem autenticação usada pelo tempo real e pela consulta do Usuário (Seções 5 e 6); dispensa app própria para o Administrador validar, já que a consulta não expõe dados privilegiados |
+| **Acesso** | Não requer autenticação — disponível tanto a usuários quanto a Administradores |
+| **Formas de acesso** | (1) Escaneando o QR Code do relatório, que abre a rota já preenchida via querystring (`?verificador=...&usuario=...`); (2) acessando a rota diretamente e informando o código verificador manualmente |
+| **Validação** | Confirma a existência de um relatório do tipo Por Limiar (`SGL_TIPO='L'`) cujo `COD_VERIFICADOR` seja igual ao informado |
+| **Resultado — código válido** | Exibe um resumo do relatório original (data de referência, sistemas e indisponibilidade total) para conferência, confirmando a autenticidade |
+| **Resultado — código inválido/inexistente** | Exibe mensagem de que o código informado não corresponde a nenhum relatório emitido, sem detalhar o motivo (evita dar pistas para tentativa de adivinhação) |
+| **Escopo de relatórios validáveis** | Apenas o Relatório por Limiar (Seção 3) — único tipo com código verificador (RN-5.4). O Relatório Diário do Administrador (Seção 4) não é validável por esta rota; ver nota em "Hipóteses Críticas Pendentes" sobre a menção de QR Code nessa seção |
+
+---
+
 ## Arquitetura de Implantação
 
 O sistema é dividido em **duas aplicações independentes**, com deploys próprios, para atender à segregação de rede:
 
 | Aplicação | Conteúdo | Rede / Publicação | Acesso |
 |-----------|----------|-------------------|--------|
-| **Aplicação Pública** | Página de acompanhamento em tempo real (Seção 5) e consulta de relatórios do usuário (Seção 6) | Rede isolada (DMZ), com deploy próprio, exposta a usuários externos ao tribunal sem acesso à rede interna | Sem autenticação |
+| **Aplicação Pública** | Página de acompanhamento em tempo real (Seção 5), consulta de relatórios do usuário (Seção 6) e validação de autenticidade de relatórios (Seção 9) | Rede isolada (DMZ), com deploy próprio, exposta a usuários externos ao tribunal sem acesso à rede interna | Sem autenticação |
 | **Aplicação Administrativa** | Gerenciamento de serviços, relatório diário e consulta de relatórios do Administrador (Seções 7 e 8) | Rede interna do tribunal | Requer perfil de Administrador via token SSO |
 
 O serviço de monitoramento (healthcheck) e o banco de dados são compartilhados; a Aplicação Pública consome apenas os dados necessários para exibição, sem acesso às funções administrativas.
@@ -189,6 +205,8 @@ O serviço de monitoramento (healthcheck) e o banco de dados são compartilhados
 | # | Hipótese | Ação necessária |
 |---|----------|-----------------|
 | U4 | Formato do relatório (QR Code) é aceito pelo Tribunal | Validar com representante do Tribunal antes do desenvolvimento |
+| U5 | Código verificador precisa ser não-sequencial/suficientemente longo para suportar exposição pública em `/autenticar` sem risco de adivinhação (o protótipo de PDF usa um exemplo sequencial simples, ex.: `0000001`) | Definir formato/algoritmo do código verificador (ex.: aleatório, hash) antes da Entrega 3 (geração de relatórios) |
+| U6 | Seção 4 do escopo (Relatório Diário do Administrador) lista "QR Code para validação de autenticidade", mas o modelo de dados define que apenas o tipo Por Limiar possui `COD_VERIFICADOR` (RN-5.4) — o relatório do Administrador hoje **não** é autenticável por `/autenticar` | Confirmar com o Tribunal/Administrador se o relatório diário também deve ser autenticável; se sim, estender o modelo de dados (ver `data-model.md` — Pontos a Refinar) |
 | N1 | O sistema estará em conformidade com a minuta do Tribunal ao entrar no ar | Revisão formal da minuta com jurídico ou Tribunal |
 | T4 | Formatos de resposta de ASP.NET HealthChecks e Spring Boot Actuator são compatíveis | Spike técnico antes do início do desenvolvimento |
 
@@ -225,6 +243,7 @@ O serviço de monitoramento (healthcheck) e o banco de dados são compartilhados
 - [ ] Relatório diário do Administrador gerado corretamente por 5 dias consecutivos em homologação
 - [ ] Relatório por limiar (2h) gerado corretamente ao simular indisponibilidade em homologação
 - [ ] QR Code de validação funcionando em 100% dos relatórios gerados
+- [ ] Consulta de autenticidade em `/autenticar` retornando resultado correto para código verificador válido e inválido, testada por Usuário e por Administrador
 - [ ] Tempo de detecção ≤ 1 minuto confirmado em testes
 - [ ] Hierarquia de serviços propagando indisponibilidade corretamente nos testes
 - [ ] Conformidade formal com a minuta do Tribunal confirmada

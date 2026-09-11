@@ -1,6 +1,6 @@
 # Dicionário de Dados — Monitoramento de Indisponibilidade
 
-> Gerado em: 20/07/2026 | Versão: 1.1 | Schema: USU_INDISPONIBILIDADE
+> Gerado em: 20/07/2026 | Atualizado em: 10/09/2026 | Versão: 1.2 | Schema: USU_INDISPONIBILIDADE
 
 ## Bloco de Auditoria (padrão em todas as tabelas de negócio)
 
@@ -103,11 +103,11 @@ As colunas abaixo repetem-se em SERVICO_MONITORADO, HIERARQUIA_SERVICO, INDISPON
 | **Nome do Objeto** | `RELATORIO` |
 | **Tipo** | Tabela |
 | **Descrição** | Relatório diário gerado — por limiar (usuário) ou diário do administrador |
-| **Regras de Negócio** | Gerado à meia-noite (RN-4.1, RN-5.1); tipo L com código verificador único (RN-4.7); tipo A sem código (RN-5.4); parcial do dia atual (RN-5.6, RN-7.7); `SGL_TIPO` L/A, `SGL_STATUS` C/P/E |
+| **Regras de Negócio** | Gerado à meia-noite (RN-4.1, RN-5.1); tipo L com código verificador único (RN-4.7); tipo A sem código (RN-5.4); parcial do dia atual (RN-5.6, RN-7.7); `SGL_TIPO` L/A, `SGL_STATUS` C/P/E; `COD_VERIFICADOR` também é a chave de consulta pública da Validação de Autenticidade em `/autenticar` (escopo §9, RN-8.1 proposta — pendente de especificação formal via BDD) |
 | **Relações** | Referenciada por RELATORIO_SERVICO |
 | **Responsáveis** | Equipe de AD / Analista responsável |
 | **Data de Criação** | 20/07/2026 |
-| **Última Alteração** | 20/07/2026 |
+| **Última Alteração** | 10/09/2026 |
 
 ### Colunas de RELATORIO
 
